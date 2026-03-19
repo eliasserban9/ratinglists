@@ -26,9 +26,9 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange }: Props) 
   const colored = list.colorMode && list.items.length > 0;
   const bgColor = colored ? averageColor(list.items) : undefined;
 
-  const topRating =
+  const avgRating =
     list.items.length > 0
-      ? Math.max(...list.items.map((i) => i.rating))
+      ? list.items.reduce((sum, i) => sum + i.rating, 0) / list.items.length
       : null;
 
   function handleDelete(e: React.MouseEvent) {
@@ -58,12 +58,22 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange }: Props) 
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h2
-            className="font-semibold text-base truncate"
-            style={{ color: colored ? "#fff" : "hsl(var(--foreground))" }}
-          >
-            {list.title}
-          </h2>
+          <div className="flex items-baseline gap-2 min-w-0">
+            <h2
+              className="font-semibold text-base truncate"
+              style={{ color: colored ? "#fff" : "hsl(var(--foreground))" }}
+            >
+              {list.title}
+            </h2>
+            {avgRating !== null && (
+              <span
+                className="text-sm font-semibold shrink-0"
+                style={{ color: colored ? "rgba(255,255,255,0.9)" : "hsl(var(--primary))" }}
+              >
+                {avgRating % 1 === 0 ? avgRating : avgRating.toFixed(1)}/10
+              </span>
+            )}
+          </div>
           <p
             className="text-xs mt-0.5"
             style={{ color: colored ? "rgba(255,255,255,0.65)" : "hsl(var(--muted-foreground))" }}
@@ -71,14 +81,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange }: Props) 
             {list.items.length === 0
               ? "Empty"
               : `${list.items.length} item${list.items.length === 1 ? "" : "s"}`}
-            {topRating !== null && (
-              <span
-                className="ml-2 font-medium"
-                style={{ color: colored ? "rgba(255,255,255,0.9)" : "hsl(var(--primary))" }}
-              >
-                Top: {topRating}/10
-              </span>
-            )}
           </p>
         </div>
 
