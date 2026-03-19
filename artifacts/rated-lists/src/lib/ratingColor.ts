@@ -1,12 +1,14 @@
-// Smooth color gradient: red(1) → orange → yellow → light green → dark green → blue → purple(10)
+// Smooth color gradient: red(1–3) → orange(4–5) → yellow(6–7) → light green(8) → dark green(9) → blue(10)
 const STOPS: [number, number, number][] = [
-  [1,   0,   85],
-  [3,   28,  90],
-  [4.5, 54,  85],
-  [6,   90,  65],
-  [7.5, 130, 55],
-  [8.5, 215, 78],
-  [10,  280, 72],
+  [1,  0,   85],  // red
+  [3,  0,   85],  // red (holds through 3)
+  [4,  28,  90],  // orange
+  [5,  30,  88],  // orange
+  [6,  53,  85],  // yellow
+  [7,  55,  85],  // yellow
+  [8,  100, 65],  // light green
+  [9,  130, 55],  // dark green
+  [10, 215, 78],  // blue
 ];
 
 function interpolate(rating: number): { h: number; s: number } {

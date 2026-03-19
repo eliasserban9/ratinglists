@@ -26,18 +26,25 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem,
+    setSortMode, moveItem, renameList, renameItem, setListDescription,
   } = useLists();
   const [open, setOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descValue, setDescValue] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const descRef = useRef<HTMLTextAreaElement>(null);
 
   const list = getList(id);
 
   useEffect(() => {
     if (editingTitle) setTimeout(() => titleInputRef.current?.focus(), 30);
   }, [editingTitle]);
+
+  useEffect(() => {
+    if (editingDesc) setTimeout(() => descRef.current?.focus(), 30);
+  }, [editingDesc]);
 
   if (!list) {
     return (
@@ -78,6 +85,20 @@ export default function ListPage({ params }: Props) {
   function handleTitleKey(e: React.KeyboardEvent) {
     if (e.key === "Enter") commitTitleEdit();
     if (e.key === "Escape") setEditingTitle(false);
+  }
+
+  function startDescEdit() {
+    setDescValue(list!.description ?? "");
+    setEditingDesc(true);
+  }
+
+  function commitDescEdit() {
+    setListDescription(id, descValue);
+    setEditingDesc(false);
+  }
+
+  function handleDescKey(e: React.KeyboardEvent) {
+    if (e.key === "Escape") commitDescEdit();
   }
 
   return (
@@ -147,6 +168,29 @@ export default function ListPage({ params }: Props) {
               avg
             </span>
           </div>
+        )}
+
+        {/* Description */}
+        {editingDesc ? (
+          <textarea
+            ref={descRef}
+            value={descValue}
+            onChange={(e) => setDescValue(e.target.value)}
+            onBlur={commitDescEdit}
+            onKeyDown={handleDescKey}
+            placeholder="Add a description…"
+            rows={3}
+            className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground mb-2 placeholder:text-muted-foreground/50"
+            style={{ borderColor: "hsl(var(--border))" }}
+          />
+        ) : (
+          <p
+            className="text-muted-foreground text-sm mb-2 cursor-pointer hover:opacity-70 transition-opacity min-h-[1.5rem] whitespace-pre-wrap"
+            onClick={startDescEdit}
+            title="Tap to add description"
+          >
+            {list.description || <span className="opacity-40 italic">Add a description…</span>}
+          </p>
         )}
 
         <p className="text-muted-foreground text-sm mb-6">

@@ -116,7 +116,7 @@ export default function Home() {
             ⚙️
           </button>
         </div>
-        <p className="text-muted-foreground text-sm mb-8">Rate and rank anything you love</p>
+        <p className="text-muted-foreground text-sm mb-8"></p>
 
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center mt-24 gap-3 text-center">

@@ -11,6 +11,7 @@ export type SortMode = "added" | "rating" | "name";
 export interface RatedList {
   id: string;
   title: string;
+  description?: string;
   items: ListItem[];
   createdAt: number;
   updatedAt: number;
@@ -351,6 +352,16 @@ export function useLists() {
     [data, persist]
   );
 
+  const setListDescription = useCallback(
+    (listId: string, description: string) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) => (l.id === listId ? { ...l, description } : l)),
+      });
+    },
+    [data, persist]
+  );
+
   const renameCategory = useCallback(
     (categoryId: string, title: string) => {
       const t = title.trim();
@@ -420,6 +431,7 @@ export function useLists() {
     setColorMode,
     setSortMode,
     renameList,
+    setListDescription,
     createCategory,
     deleteCategory,
     getCategory,
