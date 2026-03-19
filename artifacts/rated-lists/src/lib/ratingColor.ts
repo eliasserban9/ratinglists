@@ -7,7 +7,7 @@ const STOPS: [number, number, number][] = [
   [6,  53,  85],  // yellow
   [7,  55,  85],  // yellow
   [8,  100, 65],  // light green
-  [9,  130, 55],  // dark green
+  [9,  195, 75],  // light blue
   [10, 215, 78],  // blue
 ];
 
