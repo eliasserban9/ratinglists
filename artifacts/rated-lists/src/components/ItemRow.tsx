@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { ListItem } from "@/hooks/useLists";
+import { ratingColors } from "@/lib/ratingColor";
 
 interface Props {
   item: ListItem;
@@ -19,43 +20,7 @@ export function fmt(n: number): string {
   return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
 }
 
-export function ratingColors(rating: number) {
-  if (rating >= 9) return {
-    bg: "#14532d", rankColor: "rgba(134,239,172,0.6)", nameColor: "#dcfce7",
-    ratingColor: "#86efac", deleteColor: "rgba(134,239,172,0.5)", deleteBg: "rgba(134,239,172,0.12)",
-    barBg: "rgba(0,0,0,0.18)", barText: "rgba(134,239,172,0.7)",
-    inputBg: "rgba(0,0,0,0.25)", inputBorder: "rgba(134,239,172,0.4)", inputText: "#86efac",
-    confirmBg: "#86efac", confirmFg: "#14532d",
-  };
-  if (rating >= 7) return {
-    bg: "#3f6212", rankColor: "rgba(190,242,100,0.6)", nameColor: "#f7fee7",
-    ratingColor: "#bef264", deleteColor: "rgba(190,242,100,0.5)", deleteBg: "rgba(190,242,100,0.12)",
-    barBg: "rgba(0,0,0,0.18)", barText: "rgba(190,242,100,0.7)",
-    inputBg: "rgba(0,0,0,0.25)", inputBorder: "rgba(190,242,100,0.4)", inputText: "#bef264",
-    confirmBg: "#bef264", confirmFg: "#3f6212",
-  };
-  if (rating >= 5) return {
-    bg: "#713f12", rankColor: "rgba(253,211,77,0.6)", nameColor: "#fef9c3",
-    ratingColor: "#fcd34d", deleteColor: "rgba(253,211,77,0.5)", deleteBg: "rgba(253,211,77,0.12)",
-    barBg: "rgba(0,0,0,0.18)", barText: "rgba(253,211,77,0.7)",
-    inputBg: "rgba(0,0,0,0.25)", inputBorder: "rgba(253,211,77,0.4)", inputText: "#fcd34d",
-    confirmBg: "#fcd34d", confirmFg: "#713f12",
-  };
-  if (rating >= 3) return {
-    bg: "#7c2d12", rankColor: "rgba(253,186,116,0.6)", nameColor: "#fff7ed",
-    ratingColor: "#fdba74", deleteColor: "rgba(253,186,116,0.5)", deleteBg: "rgba(253,186,116,0.12)",
-    barBg: "rgba(0,0,0,0.18)", barText: "rgba(253,186,116,0.7)",
-    inputBg: "rgba(0,0,0,0.25)", inputBorder: "rgba(253,186,116,0.4)", inputText: "#fdba74",
-    confirmBg: "#fdba74", confirmFg: "#7c2d12",
-  };
-  return {
-    bg: "#7f1d1d", rankColor: "rgba(252,165,165,0.6)", nameColor: "#fff1f2",
-    ratingColor: "#fca5a5", deleteColor: "rgba(252,165,165,0.5)", deleteBg: "rgba(252,165,165,0.12)",
-    barBg: "rgba(0,0,0,0.18)", barText: "rgba(252,165,165,0.7)",
-    inputBg: "rgba(0,0,0,0.25)", inputBorder: "rgba(252,165,165,0.4)", inputText: "#fca5a5",
-    confirmBg: "#fca5a5", confirmFg: "#7f1d1d",
-  };
-}
+export { ratingColors };
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,

@@ -1,40 +1,12 @@
 import { useState } from "react";
 import type { RatedList, ListItem } from "@/hooks/useLists";
+import { ratingToColor } from "@/lib/ratingColor";
 
 interface Props {
   list: RatedList;
   onClick: () => void;
   onDelete: () => void;
   onColorModeChange: (value: boolean) => void;
-}
-
-// Color stops: [rating, hue, sat%, light%]
-const COLOR_STOPS: [number, number, number, number][] = [
-  [1,  0,   85, 50],  // red
-  [3,  28,  90, 52],  // orange
-  [4.5, 54, 85, 47],  // yellow
-  [6,  90,  65, 42],  // light green
-  [7.5, 130, 55, 33], // dark green
-  [8.5, 215, 78, 50], // blue
-  [10, 280, 72, 55],  // purple
-];
-
-function ratingToColor(rating: number, lightness?: number): string {
-  const r = Math.max(1, Math.min(10, rating));
-  let lo = COLOR_STOPS[0];
-  let hi = COLOR_STOPS[COLOR_STOPS.length - 1];
-  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
-    if (r >= COLOR_STOPS[i][0] && r <= COLOR_STOPS[i + 1][0]) {
-      lo = COLOR_STOPS[i];
-      hi = COLOR_STOPS[i + 1];
-      break;
-    }
-  }
-  const t = (r - lo[0]) / (hi[0] - lo[0]);
-  const h = lo[1] + t * (hi[1] - lo[1]);
-  const s = lo[2] + t * (hi[2] - lo[2]);
-  const l = lightness ?? (lo[3] + t * (hi[3] - lo[3]));
-  return `hsl(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l.toFixed(1)}%)`;
 }
 
 function averageRating(items: ListItem[]): number {

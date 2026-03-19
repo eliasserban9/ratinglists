@@ -57,7 +57,7 @@ export default function Home() {
     <div className="min-h-screen bg-background pb-24">
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
-          <h1 className="text-3xl font-bold text-foreground">My Lists</h1>
+          <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
           <button
             onClick={toggle}
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

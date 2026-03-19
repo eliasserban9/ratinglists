@@ -49,7 +49,7 @@ export default function ListPage({ params }: Props) {
 
   const currentSortMode: SortMode = list.sortMode ?? "rating";
   const parentCategory = list.categoryId ? getCategory(list.categoryId) : undefined;
-  const backLabel = parentCategory ? parentCategory.title : "My Lists";
+  const backLabel = parentCategory ? parentCategory.title : "Rating Lists";
   const backPath = parentCategory ? `/category/${parentCategory.id}` : "/";
 
   const avg =
