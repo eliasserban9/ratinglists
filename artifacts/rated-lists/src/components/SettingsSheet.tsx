@@ -5,9 +5,11 @@ interface Props {
   onClose: () => void;
   onDownload: () => void;
   onUpload: (file: File) => void;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
 }
 
-export function SettingsSheet({ open, onClose, onDownload, onUpload }: Props) {
+export function SettingsSheet({ open, onClose, onDownload, onUpload, theme, onToggleTheme }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleUploadClick() {
@@ -46,6 +48,21 @@ export function SettingsSheet({ open, onClose, onDownload, onUpload }: Props) {
         </div>
 
         <div className="flex flex-col gap-3">
+          <button
+            onClick={() => { onToggleTheme(); }}
+            className="flex items-center gap-4 w-full text-left bg-muted hover:bg-muted/80 border border-border rounded-2xl px-4 py-4 transition-colors active:scale-[.98]"
+          >
+            <span className="text-2xl">{theme === "dark" ? "☀️" : "🌙"}</span>
+            <div>
+              <div className="font-semibold text-sm text-foreground">
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Switch to {theme === "dark" ? "light" : "dark"} theme
+              </div>
+            </div>
+          </button>
+
           <button
             onClick={() => { onDownload(); onClose(); }}
             className="flex items-center gap-4 w-full text-left bg-muted hover:bg-muted/80 border border-border rounded-2xl px-4 py-4 transition-colors active:scale-[.98]"

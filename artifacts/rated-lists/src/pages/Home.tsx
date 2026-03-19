@@ -104,30 +104,17 @@ export default function Home() {
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <button
-              onClick={() => setSettingsOpen(true)}
-              aria-label="Settings"
-              className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
-              style={{
-                backgroundColor: "hsl(var(--muted))",
-                color: "hsl(var(--muted-foreground))",
-              }}
-            >
-              ⚙️
-            </button>
-            <button
-              onClick={toggle}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
-              style={{
-                backgroundColor: "hsl(var(--muted))",
-                color: "hsl(var(--muted-foreground))",
-              }}
-            >
-              {theme === "dark" ? "☀️" : "🌙"}
-            </button>
-          </div>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
+            className="mt-1 w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
+            style={{
+              backgroundColor: "hsl(var(--muted))",
+              color: "hsl(var(--muted-foreground))",
+            }}
+          >
+            ⚙️
+          </button>
         </div>
         <p className="text-muted-foreground text-sm mb-8">Rate and rank anything you love</p>
 
@@ -200,6 +187,8 @@ export default function Home() {
         onClose={() => setSettingsOpen(false)}
         onDownload={handleDownload}
         onUpload={handleUpload}
+        theme={theme}
+        onToggleTheme={toggle}
       />
     </div>
   );
