@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import { useTheme } from "@/hooks/useTheme";
@@ -6,9 +6,12 @@ import { ListCard } from "@/components/ListCard";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ItemRow } from "@/components/ItemRow";
 import { CreateTypeDialog } from "@/components/CreateTypeDialog";
+import { SettingsSheet } from "@/components/SettingsSheet";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
   const {
     lists,
@@ -24,8 +27,51 @@ export default function Home() {
     updateStandaloneItemRating,
     deleteStandaloneItem,
     renameStandaloneItem,
+    getAllData,
+    importData,
   } = useLists();
   const [, navigate] = useLocation();
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }
+
+  function handleDownload() {
+    const data = getAllData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rating-lists-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Data downloaded successfully!", true);
+  }
+
+  function handleUpload(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target?.result as string);
+        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.lists)) {
+          showToast("Invalid file — not a Rating Lists backup.", false);
+          return;
+        }
+        importData(parsed);
+        showToast("Data imported successfully!", true);
+      } catch {
+        showToast("Failed to read file. Make sure it's a valid JSON backup.", false);
+      }
+    };
+    reader.readAsText(file);
+  }
 
   function handleCreate(type: "list" | "category" | "item", title: string, rating?: number) {
     if (type === "list") {
@@ -58,17 +104,30 @@ export default function Home() {
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
-          <button
-            onClick={toggle}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="mt-1 w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
-            style={{
-              backgroundColor: "hsl(var(--muted))",
-              color: "hsl(var(--muted-foreground))",
-            }}
-          >
-            {theme === "dark" ? "☀️" : "🌙"}
-          </button>
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Settings"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--muted-foreground))",
+              }}
+            >
+              ⚙️
+            </button>
+            <button
+              onClick={toggle}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--muted-foreground))",
+              }}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+          </div>
         </div>
         <p className="text-muted-foreground text-sm mb-8">Rate and rank anything you love</p>
 
@@ -125,7 +184,23 @@ export default function Home() {
         +
       </button>
 
+      {toast && (
+        <div
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-3 rounded-2xl shadow-lg text-sm font-medium text-white flex items-center gap-2 transition-all"
+          style={{ backgroundColor: toast.ok ? "#16a34a" : "#dc2626", maxWidth: "calc(100vw - 2rem)" }}
+        >
+          <span>{toast.ok ? "✓" : "✕"}</span>
+          {toast.msg}
+        </div>
+      )}
+
       <CreateTypeDialog open={open} onClose={() => setOpen(false)} onCreate={handleCreate} />
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onDownload={handleDownload}
+        onUpload={handleUpload}
+      />
     </div>
   );
 }

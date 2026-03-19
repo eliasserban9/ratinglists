@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { ratingToColor } from "@/lib/ratingColor";
+import { fmt } from "@/components/ItemRow";
 
 type CreateType = "list" | "category" | "item";
 
@@ -33,19 +35,25 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
   const [step, setStep] = useState<"pick" | "name">("pick");
   const [type, setType] = useState<CreateType>("list");
   const [title, setTitle] = useState("");
-  const [rating, setRating] = useState(5);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [ratingStr, setRatingStr] = useState("5");
+  const titleRef = useRef<HTMLInputElement>(null);
+  const ratingRef = useRef<HTMLInputElement>(null);
+
+  const parsedRating = (() => {
+    const n = parseFloat(ratingStr);
+    return !isNaN(n) && n >= 0 && n <= 10 ? Math.round(n * 10) / 10 : null;
+  })();
 
   useEffect(() => {
     if (open) {
       setStep("pick");
       setTitle("");
-      setRating(5);
+      setRatingStr("5");
     }
   }, [open]);
 
   useEffect(() => {
-    if (step === "name") setTimeout(() => inputRef.current?.focus(), 50);
+    if (step === "name") setTimeout(() => titleRef.current?.focus(), 50);
   }, [step]);
 
   function pickType(t: CreateType) {
@@ -56,13 +64,15 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
-    onCreate(type, title.trim(), type === "item" ? rating : undefined);
+    const finalRating = parsedRating ?? 5;
+    onCreate(type, title.trim(), type === "item" ? finalRating : undefined);
     onClose();
   }
 
   if (!open) return null;
 
   const meta = TYPE_META[type];
+  const ratingColor = parsedRating !== null ? ratingToColor(parsedRating) : undefined;
 
   return (
     <div
@@ -118,7 +128,7 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
             <p className="text-xs text-muted-foreground mb-4">{meta.description}</p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <input
-                ref={inputRef}
+                ref={titleRef}
                 type="text"
                 placeholder={meta.placeholder}
                 value={title}
@@ -128,25 +138,35 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
               />
 
               {type === "item" && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground shrink-0">Rating</span>
-                  <div className="flex gap-1 flex-wrap">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setRating(n)}
-                        className="w-8 h-8 rounded-lg text-xs font-semibold transition-all"
-                        style={
-                          rating === n
-                            ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }
-                            : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
-                        }
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Rating (0 – 10, decimals ok)</span>
+                    {parsedRating !== null && (
+                      <span
+                        className="text-sm font-bold px-2.5 py-0.5 rounded-lg"
+                        style={{ backgroundColor: ratingColor, color: "#fff" }}
                       >
-                        {n}
-                      </button>
-                    ))}
+                        {fmt(parsedRating)}/10
+                      </span>
+                    )}
                   </div>
+                  <input
+                    ref={ratingRef}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    value={ratingStr}
+                    onChange={(e) => setRatingStr(e.target.value)}
+                    placeholder="e.g. 7.5"
+                    className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-semibold text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                    style={
+                      parsedRating !== null
+                        ? { borderColor: ratingColor, boxShadow: `0 0 0 1px ${ratingColor}22` }
+                        : undefined
+                    }
+                  />
                 </div>
               )}
 
@@ -160,7 +180,7 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
                 </button>
                 <button
                   type="submit"
-                  disabled={!title.trim()}
+                  disabled={!title.trim() || (type === "item" && parsedRating === null)}
                   className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
                   Create

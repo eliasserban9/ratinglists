@@ -391,6 +391,25 @@ export function useLists() {
     [data, persist]
   );
 
+  const getAllData = useCallback(() => data, [data]);
+
+  const importData = useCallback(
+    (incoming: StoredData) => {
+      const normalized: StoredData = {
+        lists: (incoming.lists ?? []).map((l) => ({
+          colorMode: false,
+          sortMode: "rating" as SortMode,
+          updatedAt: l.createdAt,
+          ...l,
+        })),
+        categories: incoming.categories ?? [],
+        standaloneItems: incoming.standaloneItems ?? [],
+      };
+      persist(normalized);
+    },
+    [persist]
+  );
+
   return {
     lists: topLevelLists,
     categories: data.categories,
@@ -417,5 +436,7 @@ export function useLists() {
     updateStandaloneItemRating,
     deleteStandaloneItem,
     renameStandaloneItem,
+    getAllData,
+    importData,
   };
 }
