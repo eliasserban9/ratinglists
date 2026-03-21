@@ -154,7 +154,7 @@ export default function CategoryPage({ params }: Props) {
             <p className="text-muted-foreground text-base">Tap + to add your first list.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3" style={{ zoom }}>
+          <div className="flex flex-col gap-3">
             {lists.map((list) => (
               <ListCard
                 key={list.id}
@@ -162,6 +162,7 @@ export default function CategoryPage({ params }: Props) {
                 onClick={() => navigate(`/list/${list.id}`)}
                 onDelete={() => deleteList(list.id)}
                 onColorModeChange={(value) => setColorMode(list.id, value)}
+                scale={zoom}
               />
             ))}
           </div>

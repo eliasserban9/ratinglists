@@ -207,7 +207,7 @@ export default function ListPage({ params }: Props) {
             <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2" style={{ zoom }}>
+          <div className="flex flex-col gap-2">
             {displayedItems.map((item, index) => (
               <ItemRow
                 key={item.id}
@@ -221,6 +221,7 @@ export default function ListPage({ params }: Props) {
                 onMoveDown={() => moveItem(id, item.id, "down")}
                 isFirst={index === 0}
                 isLast={index === displayedItems.length - 1}
+                scale={zoom}
               />
             ))}
           </div>

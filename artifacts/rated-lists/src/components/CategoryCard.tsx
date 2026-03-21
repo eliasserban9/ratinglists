@@ -6,9 +6,10 @@ interface Props {
   lists: RatedList[];
   onClick: () => void;
   onDelete: () => void;
+  scale?: number;
 }
 
-export function CategoryCard({ category, lists, onClick, onDelete }: Props) {
+export function CategoryCard({ category, lists, onClick, onDelete, scale = 1 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function handleDelete(e: React.MouseEvent) {
@@ -25,6 +26,7 @@ export function CategoryCard({ category, lists, onClick, onDelete }: Props) {
     <div
       onClick={onClick}
       className="relative bg-card border border-card-border rounded-2xl p-4 cursor-pointer active:scale-[.98] transition-transform hover:shadow-sm"
+      style={{ zoom: `${Math.round(scale * 100)}%` }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 flex-1 min-w-0">

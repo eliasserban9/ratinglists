@@ -7,6 +7,7 @@ interface Props {
   onClick: () => void;
   onDelete: () => void;
   onColorModeChange: (value: boolean) => void;
+  scale?: number;
 }
 
 function averageRating(items: ListItem[]): number {
@@ -18,7 +19,7 @@ function averageColor(items: ListItem[]): string {
   return ratingToColor(averageRating(items), 26);
 }
 
-export function ListCard({ list, onClick, onDelete, onColorModeChange }: Props) {
+export function ListCard({ list, onClick, onDelete, onColorModeChange, scale = 1 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const colored = list.colorMode && list.items.length > 0;
@@ -49,8 +50,8 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange }: Props) 
       className="relative rounded-2xl p-4 cursor-pointer active:scale-[.98] transition-all hover:shadow-sm border"
       style={
         colored
-          ? { backgroundColor: bgColor, borderColor: "transparent" }
-          : { backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--card-border))" }
+          ? { backgroundColor: bgColor, borderColor: "transparent", zoom: `${Math.round(scale * 100)}%` }
+          : { backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--card-border))", zoom: `${Math.round(scale * 100)}%` }
       }
     >
       <div className="flex items-start justify-between gap-2">

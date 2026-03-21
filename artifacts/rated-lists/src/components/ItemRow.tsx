@@ -15,12 +15,13 @@ interface Props {
   onMoveDown?: () => void;
   isFirst?: boolean;
   isLast?: boolean;
+  scale?: number;
 }
 
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,
-  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast,
+  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -99,7 +100,7 @@ export function ItemRow({
   }
 
   return (
-    <div ref={rowRef} className="flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: s.bg }}>
+    <div ref={rowRef} className="flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: s.bg, zoom: `${Math.round(scale * 100)}%` }}>
       {/* Main row */}
       <div className="flex items-stretch">
         {showMoveBar && (

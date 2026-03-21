@@ -192,7 +192,7 @@ export default function Home() {
             <p className="text-muted-foreground text-base">No lists yet. Tap + to create one.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3" style={{ zoom }}>
+          <div className="flex flex-col gap-3">
             {allItems.map(({ kind, item }) => {
               if (kind === "category") {
                 return (
@@ -202,6 +202,7 @@ export default function Home() {
                     lists={getListsForCategory(item.id)}
                     onClick={() => navigate(`/category/${item.id}`)}
                     onDelete={() => deleteCategory(item.id)}
+                    scale={zoom}
                   />
                 );
               }
@@ -213,6 +214,7 @@ export default function Home() {
                     onClick={() => navigate(`/list/${item.id}`)}
                     onDelete={() => deleteList(item.id)}
                     onColorModeChange={(value) => setColorMode(item.id, value)}
+                    scale={zoom}
                   />
                 );
               }
@@ -224,6 +226,7 @@ export default function Home() {
                   onRatingChange={(rating) => updateStandaloneItemRating(item.id, rating)}
                   onRename={(name) => renameStandaloneItem(item.id, name)}
                   onDelete={() => deleteStandaloneItem(item.id)}
+                  scale={zoom}
                 />
               );
             })}
