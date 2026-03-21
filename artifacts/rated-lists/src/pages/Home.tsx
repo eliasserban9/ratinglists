@@ -7,6 +7,7 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { ItemRow } from "@/components/ItemRow";
 import { CreateTypeDialog } from "@/components/CreateTypeDialog";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { ratingToColor, fmt } from "@/lib/ratingColor";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
@@ -87,6 +88,18 @@ export default function Home() {
 
   const hasContent = lists.length > 0 || categories.length > 0 || standaloneItems.length > 0;
 
+  // Grand average across every rated thing
+  const grandAvg = (() => {
+    const allData = getAllData();
+    const allRatings: number[] = [
+      ...allData.lists.flatMap((l) => l.items.map((i) => i.rating)),
+      ...allData.standaloneItems.map((i) => i.rating),
+    ];
+    if (allRatings.length === 0) return null;
+    return allRatings.reduce((s, r) => s + r, 0) / allRatings.length;
+  })();
+  const grandColors = grandAvg !== null ? ratingToColor(grandAvg) : null;
+
   // Merge all home-screen items, sort by most recently updated/created
   type HomeEntry =
     | { kind: "category"; item: (typeof categories)[0]; sortKey: number }
@@ -116,7 +129,23 @@ export default function Home() {
             ⚙️
           </button>
         </div>
-        <p className="text-muted-foreground text-sm mb-8"></p>
+        {grandColors && grandAvg !== null ? (
+          <div className="flex items-baseline gap-1.5 mt-1 mb-8">
+            <div
+              className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl"
+              style={{ backgroundColor: grandColors.bg }}
+            >
+              <span className="text-lg font-bold" style={{ color: grandColors.ratingColor }}>
+                {fmt(grandAvg)}
+              </span>
+              <span className="text-xs font-medium" style={{ color: grandColors.rankColor }}>
+                overall avg
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm mb-8"></p>
+        )}
 
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center mt-24 gap-3 text-center">

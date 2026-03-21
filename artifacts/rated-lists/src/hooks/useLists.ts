@@ -24,6 +24,7 @@ export interface Category {
   id: string;
   title: string;
   createdAt: number;
+  sortMode?: SortMode;
 }
 
 export interface StandaloneItem {
@@ -362,6 +363,16 @@ export function useLists() {
     [data, persist]
   );
 
+  const setCategorySortMode = useCallback(
+    (categoryId: string, sortMode: SortMode) => {
+      persist({
+        ...data,
+        categories: data.categories.map((c) => (c.id === categoryId ? { ...c, sortMode } : c)),
+      });
+    },
+    [data, persist]
+  );
+
   const renameCategory = useCallback(
     (categoryId: string, title: string) => {
       const t = title.trim();
@@ -438,6 +449,7 @@ export function useLists() {
     getListsForCategory,
     createListInCategory,
     renameCategory,
+    setCategorySortMode,
     addItem,
     updateItemRating,
     deleteItem,

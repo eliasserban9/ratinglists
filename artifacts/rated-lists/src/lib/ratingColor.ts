@@ -29,6 +29,11 @@ function interpolate(rating: number): { h: number; s: number } {
   };
 }
 
+export function fmt(n: number): string {
+  const rounded = Math.round(n * 10) / 10;
+  return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+}
+
 export function ratingToColor(rating: number, lightness = 50): string {
   const { h, s } = interpolate(rating);
   return `hsl(${h.toFixed(1)}, ${s.toFixed(1)}%, ${lightness}%)`;

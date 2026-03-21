@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { ListItem } from "@/hooks/useLists";
-import { ratingColors } from "@/lib/ratingColor";
+import { ratingColors, fmt } from "@/lib/ratingColor";
+
+export { fmt, ratingColors };
 
 interface Props {
   item: ListItem;
@@ -15,12 +17,6 @@ interface Props {
   isLast?: boolean;
 }
 
-export function fmt(n: number): string {
-  const rounded = Math.round(n * 10) / 10;
-  return rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
-}
-
-export { ratingColors };
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,

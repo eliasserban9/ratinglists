@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
+import type { SortMode } from "@/hooks/useLists";
 import { ListCard } from "@/components/ListCard";
 import { NewListDialog } from "@/components/NewListDialog";
 
@@ -8,12 +9,23 @@ interface Props {
   params: { id: string };
 }
 
+const SORT_OPTIONS: { value: SortMode; label: string }[] = [
+  { value: "added", label: "As Added" },
+  { value: "rating", label: "By Rating" },
+  { value: "name", label: "By Name" },
+];
+
+function avgRating(items: { rating: number }[]): number | null {
+  if (items.length === 0) return null;
+  return items.reduce((s, i) => s + i.rating, 0) / items.length;
+}
+
 export default function CategoryPage({ params }: Props) {
   const { id } = params;
   const [, navigate] = useLocation();
   const {
     getCategory, getListsForCategory, createListInCategory,
-    deleteList, setColorMode, renameCategory,
+    deleteList, setColorMode, renameCategory, setCategorySortMode,
   } = useLists();
   const [open, setOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -21,7 +33,7 @@ export default function CategoryPage({ params }: Props) {
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const category = getCategory(id);
-  const lists = getListsForCategory(id);
+  const rawLists = getListsForCategory(id);
 
   useEffect(() => {
     if (editingTitle) setTimeout(() => titleInputRef.current?.focus(), 30);
@@ -34,6 +46,21 @@ export default function CategoryPage({ params }: Props) {
       </div>
     );
   }
+
+  const currentSortMode: SortMode = category.sortMode ?? "added";
+
+  const lists = [...rawLists].sort((a, b) => {
+    if (currentSortMode === "name") return a.title.localeCompare(b.title);
+    if (currentSortMode === "rating") {
+      const ra = avgRating(a.items);
+      const rb = avgRating(b.items);
+      if (ra === null && rb === null) return 0;
+      if (ra === null) return 1;
+      if (rb === null) return -1;
+      return rb - ra;
+    }
+    return a.createdAt - b.createdAt;
+  });
 
   function handleCreate(title: string) {
     const listId = createListInCategory(id, title);
@@ -63,31 +90,54 @@ export default function CategoryPage({ params }: Props) {
           className="flex items-center gap-1 text-primary text-sm mb-6 hover:opacity-70 transition-opacity"
         >
           <span className="text-lg leading-none">‹</span>
-          <span>My Lists</span>
+          <span>Rating Lists</span>
         </button>
 
-        <div className="flex items-center gap-3 mb-1">
-          <span className="text-3xl">📁</span>
-          {editingTitle ? (
-            <input
-              ref={titleInputRef}
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              onBlur={commitTitleEdit}
-              onKeyDown={handleTitleKey}
-              className="flex-1 text-3xl font-bold bg-transparent border-b-2 outline-none text-foreground"
-              style={{ borderColor: "hsl(var(--primary))" }}
-              maxLength={60}
-            />
-          ) : (
-            <h1
-              className="text-3xl font-bold text-foreground cursor-pointer hover:opacity-75 transition-opacity"
-              onClick={startTitleEdit}
-              title="Tap to rename"
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-3xl shrink-0">📁</span>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={commitTitleEdit}
+                onKeyDown={handleTitleKey}
+                className="flex-1 text-3xl font-bold bg-transparent border-b-2 outline-none text-foreground"
+                style={{ borderColor: "hsl(var(--primary))" }}
+                maxLength={60}
+              />
+            ) : (
+              <h1
+                className="text-3xl font-bold text-foreground cursor-pointer hover:opacity-75 transition-opacity truncate"
+                onClick={startTitleEdit}
+                title="Tap to rename"
+              >
+                {category.title}
+              </h1>
+            )}
+          </div>
+
+          <div className="relative shrink-0">
+            <select
+              value={currentSortMode}
+              onChange={(e) => setCategorySortMode(id, e.target.value as SortMode)}
+              className="appearance-none text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 border cursor-pointer outline-none"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--foreground))",
+                borderColor: "hsl(var(--border))",
+              }}
             >
-              {category.title}
-            </h1>
-          )}
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <span
+              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+              style={{ color: "hsl(var(--muted-foreground))" }}
+            >▾</span>
+          </div>
         </div>
 
         <p className="text-muted-foreground text-sm mb-8 pl-12">
