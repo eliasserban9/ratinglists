@@ -125,6 +125,11 @@ export default function Home() {
       return nameA.localeCompare(nameB);
     }
     if (sortMode === "rating") {
+      const catA = a.kind === "category";
+      const catB = b.kind === "category";
+      if (catA && catB) return 0;
+      if (catA) return 1;
+      if (catB) return -1;
       const ra = a.avgRating;
       const rb = b.avgRating;
       if (ra === null && rb === null) return 0;
@@ -154,7 +159,7 @@ export default function Home() {
           </button>
         </div>
         <div className="flex items-center justify-between mt-1 mb-8">
-          <p className="text-muted-foreground text-sm"></p>
+          <p className="text-muted-foreground text-sm">Rate and rank anything you love</p>
           {hasContent && (
             <div className="relative">
               <select
