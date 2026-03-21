@@ -7,11 +7,12 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { ItemRow } from "@/components/ItemRow";
 import { CreateTypeDialog } from "@/components/CreateTypeDialog";
 import { SettingsSheet } from "@/components/SettingsSheet";
-import { ratingToColor, fmt } from "@/lib/ratingColor";
+import type { SortMode } from "@/hooks/useLists";
 
 export default function Home() {
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("added");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
   const {
@@ -88,29 +89,52 @@ export default function Home() {
 
   const hasContent = lists.length > 0 || categories.length > 0 || standaloneItems.length > 0;
 
-  // Grand average across every rated thing
-  const grandAvg = (() => {
-    const allData = getAllData();
-    const allRatings: number[] = [
-      ...allData.lists.flatMap((l) => l.items.map((i) => i.rating)),
-      ...allData.standaloneItems.map((i) => i.rating),
-    ];
-    if (allRatings.length === 0) return null;
-    return allRatings.reduce((s, r) => s + r, 0) / allRatings.length;
-  })();
-  const grandColors = grandAvg !== null ? ratingToColor(grandAvg) : null;
+  function avgOf(ratings: number[]): number | null {
+    if (ratings.length === 0) return null;
+    return ratings.reduce((s, r) => s + r, 0) / ratings.length;
+  }
 
-  // Merge all home-screen items, sort by most recently updated/created
+  // Merge all home-screen items
   type HomeEntry =
-    | { kind: "category"; item: (typeof categories)[0]; sortKey: number }
-    | { kind: "list"; item: (typeof lists)[0]; sortKey: number }
-    | { kind: "item"; item: (typeof standaloneItems)[0]; sortKey: number };
+    | { kind: "category"; item: (typeof categories)[0]; sortKey: number; avgRating: number | null }
+    | { kind: "list"; item: (typeof lists)[0]; sortKey: number; avgRating: number | null }
+    | { kind: "item"; item: (typeof standaloneItems)[0]; sortKey: number; avgRating: number | null };
 
   const allItems: HomeEntry[] = [
-    ...categories.map((c) => ({ kind: "category" as const, item: c, sortKey: c.createdAt })),
-    ...lists.map((l) => ({ kind: "list" as const, item: l, sortKey: l.updatedAt ?? l.createdAt })),
-    ...standaloneItems.map((i) => ({ kind: "item" as const, item: i, sortKey: i.updatedAt })),
-  ].sort((a, b) => b.sortKey - a.sortKey);
+    ...categories.map((c) => {
+      const catLists = getListsForCategory(c.id);
+      const ratings = catLists.flatMap((l) => l.items.map((i) => i.rating));
+      return { kind: "category" as const, item: c, sortKey: c.createdAt, avgRating: avgOf(ratings) };
+    }),
+    ...lists.map((l) => ({
+      kind: "list" as const,
+      item: l,
+      sortKey: l.updatedAt ?? l.createdAt,
+      avgRating: avgOf(l.items.map((i) => i.rating)),
+    })),
+    ...standaloneItems.map((i) => ({
+      kind: "item" as const,
+      item: i,
+      sortKey: i.updatedAt,
+      avgRating: i.rating,
+    })),
+  ].sort((a, b) => {
+    if (sortMode === "name") {
+      const nameA = a.kind === "item" ? a.item.name : a.item.title;
+      const nameB = b.kind === "item" ? b.item.name : b.item.title;
+      return nameA.localeCompare(nameB);
+    }
+    if (sortMode === "rating") {
+      const ra = a.avgRating;
+      const rb = b.avgRating;
+      if (ra === null && rb === null) return 0;
+      if (ra === null) return 1;
+      if (rb === null) return -1;
+      return rb - ra;
+    }
+    // "added" — most recent first
+    return b.sortKey - a.sortKey;
+  });
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -129,23 +153,31 @@ export default function Home() {
             ⚙️
           </button>
         </div>
-        {grandColors && grandAvg !== null ? (
-          <div className="flex items-baseline gap-1.5 mt-1 mb-8">
-            <div
-              className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl"
-              style={{ backgroundColor: grandColors.bg }}
-            >
-              <span className="text-lg font-bold" style={{ color: grandColors.ratingColor }}>
-                {fmt(grandAvg)}
-              </span>
-              <span className="text-xs font-medium" style={{ color: grandColors.rankColor }}>
-                overall avg
-              </span>
+        <div className="flex items-center justify-between mt-1 mb-8">
+          <p className="text-muted-foreground text-sm"></p>
+          {hasContent && (
+            <div className="relative">
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+                className="appearance-none text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 border cursor-pointer outline-none"
+                style={{
+                  backgroundColor: "hsl(var(--muted))",
+                  color: "hsl(var(--foreground))",
+                  borderColor: "hsl(var(--border))",
+                }}
+              >
+                <option value="added">As Added</option>
+                <option value="rating">By Rating</option>
+                <option value="name">By Name</option>
+              </select>
+              <span
+                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+              >▾</span>
             </div>
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-sm mb-8"></p>
-        )}
+          )}
+        </div>
 
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center mt-24 gap-3 text-center">
