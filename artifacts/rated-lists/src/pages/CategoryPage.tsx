@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
+import { useUIScale } from "@/hooks/useUIScale";
 import { ListCard } from "@/components/ListCard";
 import { NewListDialog } from "@/components/NewListDialog";
 
@@ -31,6 +32,7 @@ export default function CategoryPage({ params }: Props) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const { zoom } = useUIScale();
 
   const category = getCategory(id);
   const rawLists = getListsForCategory(id);
@@ -152,7 +154,7 @@ export default function CategoryPage({ params }: Props) {
             <p className="text-muted-foreground text-base">Tap + to add your first list.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3" style={{ zoom }}>
             {lists.map((list) => (
               <ListCard
                 key={list.id}

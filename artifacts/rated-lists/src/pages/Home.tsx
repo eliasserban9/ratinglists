@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import { useTheme } from "@/hooks/useTheme";
+import { useUIScale } from "@/hooks/useUIScale";
 import { ListCard } from "@/components/ListCard";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ItemRow } from "@/components/ItemRow";
@@ -15,6 +16,7 @@ export default function Home() {
   const [sortMode, setSortMode] = useState<SortMode>("added");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
+  const { zoom, label: scaleLabel, canUp, canDown, scaleUp, scaleDown } = useUIScale();
   const {
     lists,
     categories,
@@ -190,7 +192,7 @@ export default function Home() {
             <p className="text-muted-foreground text-base">No lists yet. Tap + to create one.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3" style={{ zoom }}>
             {allItems.map(({ kind, item }) => {
               if (kind === "category") {
                 return (
@@ -255,6 +257,11 @@ export default function Home() {
         onUpload={handleUpload}
         theme={theme}
         onToggleTheme={toggle}
+        uiScaleLabel={scaleLabel}
+        canScaleUp={canUp}
+        canScaleDown={canDown}
+        onScaleUp={scaleUp}
+        onScaleDown={scaleDown}
       />
     </div>
   );

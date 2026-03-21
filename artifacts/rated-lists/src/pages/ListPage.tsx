@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
+import { useUIScale } from "@/hooks/useUIScale";
 import { ItemRow, fmt, ratingColors } from "@/components/ItemRow";
 import { NewItemDialog } from "@/components/NewItemDialog";
 
@@ -35,6 +36,7 @@ export default function ListPage({ params }: Props) {
   const [descValue, setDescValue] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
+  const { zoom } = useUIScale();
 
   const list = getList(id);
 
@@ -205,7 +207,7 @@ export default function ListPage({ params }: Props) {
             <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" style={{ zoom }}>
             {displayedItems.map((item, index) => (
               <ItemRow
                 key={item.id}
