@@ -44,6 +44,7 @@ export default function ListPage({ params }: Props) {
   const [previewMode, setPreviewMode] = useState(false);
   const [pageScale, setPageScale] = useState(1);
   const [previewPage, setPreviewPage] = useState(0);
+  const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
 
   // Refs for measurement
   const measureRef = useRef<HTMLDivElement>(null);
@@ -69,6 +70,15 @@ export default function ListPage({ params }: Props) {
   useEffect(() => {
     if (editingNote) setTimeout(() => noteRef.current?.focus(), 30);
   }, [editingNote]);
+
+  useEffect(() => {
+    function onScroll() {
+      const scrollable = document.body.scrollHeight - window.innerHeight;
+      setScrolledPastHalf(scrollable > 0 && window.scrollY > scrollable / 2);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Compute preview scale whenever mode or item count changes.
   // Scale is based on fitting ITEMS_PER_PAGE items so it stays consistent across pages.
@@ -194,8 +204,12 @@ export default function ListPage({ params }: Props) {
     if (e.key === "Escape") commitNoteEdit();
   }
 
-  function scrollToBottom() {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  function handleScrollArrow() {
+    if (scrolledPastHalf) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }
 
   return (
@@ -434,17 +448,30 @@ export default function ListPage({ params }: Props) {
         {!previewMode && (
           <div className="mt-6">
             {editingNote ? (
-              <textarea
-                ref={noteRef}
-                value={noteValue}
-                onChange={(e) => setNoteValue(e.target.value)}
-                onBlur={commitNoteEdit}
-                onKeyDown={handleNoteKey}
-                placeholder="Add a note…"
-                rows={4}
-                className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground placeholder:text-muted-foreground/50"
-                style={{ borderColor: "hsl(var(--border))" }}
-              />
+              <div className="flex flex-col gap-2">
+                <textarea
+                  ref={noteRef}
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  onKeyDown={handleNoteKey}
+                  placeholder="Add a note…"
+                  rows={4}
+                  className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground placeholder:text-muted-foreground/50"
+                  style={{ borderColor: "hsl(var(--border))" }}
+                />
+                <div className="flex justify-end">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); commitNoteEdit(); }}
+                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{
+                      backgroundColor: "hsl(var(--primary))",
+                      color: "hsl(var(--primary-foreground))",
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
             ) : list.note ? (
               <p
                 className="text-muted-foreground text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap"
@@ -471,15 +498,18 @@ export default function ListPage({ params }: Props) {
       {!previewMode && (
         <div className="fixed bottom-6 right-6 flex flex-col items-center gap-2 z-50">
           <button
-            onClick={scrollToBottom}
+            onClick={handleScrollArrow}
             className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
             style={{
               backgroundColor: "hsl(var(--muted))",
               color: "hsl(var(--muted-foreground))",
             }}
-            aria-label="Scroll to bottom"
+            aria-label={scrolledPastHalf ? "Scroll to top" : "Scroll to bottom"}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"
+              style={{ transform: scrolledPastHalf ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+            >
               <path d="M2 4.5L7 9.5L12 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
