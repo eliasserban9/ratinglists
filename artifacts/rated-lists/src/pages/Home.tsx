@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import { useTheme } from "@/hooks/useTheme";
-import { useUIScale } from "@/hooks/useUIScale";
 import { ListCard } from "@/components/ListCard";
 import { CategoryCard } from "@/components/CategoryCard";
 import { ItemRow } from "@/components/ItemRow";
@@ -16,7 +15,6 @@ export default function Home() {
   const [sortMode, setSortMode] = useState<SortMode>("added");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
-  const { zoom, label: scaleLabel, canUp, canDown, scaleUp, scaleDown } = useUIScale();
   const {
     lists,
     categories,
@@ -202,7 +200,6 @@ export default function Home() {
                     lists={getListsForCategory(item.id)}
                     onClick={() => navigate(`/category/${item.id}`)}
                     onDelete={() => deleteCategory(item.id)}
-                    scale={zoom}
                   />
                 );
               }
@@ -214,7 +211,6 @@ export default function Home() {
                     onClick={() => navigate(`/list/${item.id}`)}
                     onDelete={() => deleteList(item.id)}
                     onColorModeChange={(value) => setColorMode(item.id, value)}
-                    scale={zoom}
                   />
                 );
               }
@@ -226,7 +222,6 @@ export default function Home() {
                   onRatingChange={(rating) => updateStandaloneItemRating(item.id, rating)}
                   onRename={(name) => renameStandaloneItem(item.id, name)}
                   onDelete={() => deleteStandaloneItem(item.id)}
-                  scale={zoom}
                 />
               );
             })}
@@ -260,11 +255,6 @@ export default function Home() {
         onUpload={handleUpload}
         theme={theme}
         onToggleTheme={toggle}
-        uiScaleLabel={scaleLabel}
-        canScaleUp={canUp}
-        canScaleDown={canDown}
-        onScaleUp={scaleUp}
-        onScaleDown={scaleDown}
       />
     </div>
   );

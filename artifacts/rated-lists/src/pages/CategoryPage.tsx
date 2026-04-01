@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
-import { useUIScale } from "@/hooks/useUIScale";
 import { ListCard } from "@/components/ListCard";
 import { NewListDialog } from "@/components/NewListDialog";
 
@@ -32,8 +31,6 @@ export default function CategoryPage({ params }: Props) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const { zoom } = useUIScale();
-
   const category = getCategory(id);
   const rawLists = getListsForCategory(id);
 
@@ -162,7 +159,6 @@ export default function CategoryPage({ params }: Props) {
                 onClick={() => navigate(`/list/${list.id}`)}
                 onDelete={() => deleteList(list.id)}
                 onColorModeChange={(value) => setColorMode(list.id, value)}
-                scale={zoom}
               />
             ))}
           </div>

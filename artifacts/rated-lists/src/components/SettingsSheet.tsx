@@ -7,17 +7,11 @@ interface Props {
   onUpload: (file: File) => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
-  uiScaleLabel: string;
-  canScaleUp: boolean;
-  canScaleDown: boolean;
-  onScaleUp: () => void;
-  onScaleDown: () => void;
 }
 
 export function SettingsSheet({
   open, onClose, onDownload, onUpload,
   theme, onToggleTheme,
-  uiScaleLabel, canScaleUp, canScaleDown, onScaleUp, onScaleDown,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,46 +65,6 @@ export function SettingsSheet({
               </div>
             </div>
           </button>
-
-          <div className="flex items-center gap-4 w-full bg-muted border border-border rounded-2xl px-4 py-4">
-            <span className="text-2xl">🔡</span>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm text-foreground">UI Scale</div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Resize lists, categories and items
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={onScaleDown}
-                disabled={!canScaleDown}
-                aria-label="Decrease scale"
-                className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
-                style={{
-                  backgroundColor: canScaleDown ? "hsl(var(--primary))" : "hsl(var(--border))",
-                  color: canScaleDown ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
-                  cursor: canScaleDown ? "pointer" : "not-allowed",
-                }}
-              >−</button>
-              <span
-                className="w-10 text-center text-sm font-semibold tabular-nums"
-                style={{ color: "hsl(var(--foreground))" }}
-              >
-                {uiScaleLabel}
-              </span>
-              <button
-                onClick={onScaleUp}
-                disabled={!canScaleUp}
-                aria-label="Increase scale"
-                className="w-8 h-8 rounded-full flex items-center justify-center text-base font-bold transition-colors"
-                style={{
-                  backgroundColor: canScaleUp ? "hsl(var(--primary))" : "hsl(var(--border))",
-                  color: canScaleUp ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
-                  cursor: canScaleUp ? "pointer" : "not-allowed",
-                }}
-              >+</button>
-            </div>
-          </div>
 
           <button
             onClick={() => { onDownload(); onClose(); }}
