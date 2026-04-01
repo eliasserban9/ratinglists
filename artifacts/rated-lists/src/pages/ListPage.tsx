@@ -29,7 +29,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -37,6 +37,8 @@ export default function ListPage({ params }: Props) {
   const [titleValue, setTitleValue] = useState("");
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState("");
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState("");
 
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
@@ -51,6 +53,8 @@ export default function ListPage({ params }: Props) {
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const list = getList(id);
 
@@ -61,6 +65,10 @@ export default function ListPage({ params }: Props) {
   useEffect(() => {
     if (editingDesc) setTimeout(() => descRef.current?.focus(), 30);
   }, [editingDesc]);
+
+  useEffect(() => {
+    if (editingNote) setTimeout(() => noteRef.current?.focus(), 30);
+  }, [editingNote]);
 
   // Compute preview scale whenever mode or item count changes.
   // Scale is based on fitting ITEMS_PER_PAGE items so it stays consistent across pages.
@@ -169,6 +177,25 @@ export default function ListPage({ params }: Props) {
 
   function handleDescKey(e: React.KeyboardEvent) {
     if (e.key === "Escape") commitDescEdit();
+  }
+
+  function startNoteEdit() {
+    if (previewMode) return;
+    setNoteValue(list!.note ?? "");
+    setEditingNote(true);
+  }
+
+  function commitNoteEdit() {
+    setListNote(id, noteValue);
+    setEditingNote(false);
+  }
+
+  function handleNoteKey(e: React.KeyboardEvent) {
+    if (e.key === "Escape") commitNoteEdit();
+  }
+
+  function scrollToBottom() {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }
 
   return (
@@ -403,16 +430,67 @@ export default function ListPage({ params }: Props) {
             )}
           </>
         )}
+        {/* Note section — below items, hidden in preview mode */}
+        {!previewMode && (
+          <div className="mt-6">
+            {editingNote ? (
+              <textarea
+                ref={noteRef}
+                value={noteValue}
+                onChange={(e) => setNoteValue(e.target.value)}
+                onBlur={commitNoteEdit}
+                onKeyDown={handleNoteKey}
+                placeholder="Add a note…"
+                rows={4}
+                className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground placeholder:text-muted-foreground/50"
+                style={{ borderColor: "hsl(var(--border))" }}
+              />
+            ) : list.note ? (
+              <p
+                className="text-muted-foreground text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap"
+                onClick={startNoteEdit}
+                title="Tap to edit note"
+              >
+                {list.note}
+              </p>
+            ) : (
+              <button
+                onClick={startNoteEdit}
+                className="text-sm font-medium transition-opacity hover:opacity-60"
+                style={{ color: "hsl(var(--muted-foreground) / 45%)" }}
+              >
+                + note
+              </button>
+            )}
+          </div>
+        )}
+
+        <div ref={bottomRef} />
       </div>
 
       {!previewMode && (
-        <button
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center text-2xl font-light hover:opacity-90 active:scale-95 transition-all z-50"
-          aria-label="Add item"
-        >
-          +
-        </button>
+        <div className="fixed bottom-6 right-6 flex flex-col items-center gap-2 z-50">
+          <button
+            onClick={scrollToBottom}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:opacity-80 active:scale-95"
+            style={{
+              backgroundColor: "hsl(var(--muted))",
+              color: "hsl(var(--muted-foreground))",
+            }}
+            aria-label="Scroll to bottom"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 4.5L7 9.5L12 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => setOpen(true)}
+            className="w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center text-2xl font-light hover:opacity-90 active:scale-95 transition-all"
+            aria-label="Add item"
+          >
+            +
+          </button>
+        </div>
       )}
 
       <NewItemDialog

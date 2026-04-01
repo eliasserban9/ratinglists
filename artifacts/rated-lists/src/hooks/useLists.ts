@@ -12,6 +12,7 @@ export interface RatedList {
   id: string;
   title: string;
   description?: string;
+  note?: string;
   items: ListItem[];
   createdAt: number;
   updatedAt: number;
@@ -363,6 +364,16 @@ export function useLists() {
     [data, persist]
   );
 
+  const setListNote = useCallback(
+    (listId: string, note: string) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) => (l.id === listId ? { ...l, note } : l)),
+      });
+    },
+    [data, persist]
+  );
+
   const setCategorySortMode = useCallback(
     (categoryId: string, sortMode: SortMode) => {
       persist({
@@ -443,6 +454,7 @@ export function useLists() {
     setSortMode,
     renameList,
     setListDescription,
+    setListNote,
     createCategory,
     deleteCategory,
     getCategory,
