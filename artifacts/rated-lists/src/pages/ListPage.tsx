@@ -223,8 +223,8 @@ export default function ListPage({ params }: Props) {
   const isDark = document.documentElement.classList.contains("dark");
   const listBg = list.bgHue !== undefined
     ? isDark
-      ? `hsl(${list.bgHue} 14% 16%)`
-      : `hsl(${list.bgHue} 20% 93%)`
+      ? `hsl(${list.bgHue} 38% 19%)`
+      : `hsl(${list.bgHue} 45% 87%)`
     : undefined;
 
   function hueFromPointer(e: React.PointerEvent<HTMLDivElement>) {
