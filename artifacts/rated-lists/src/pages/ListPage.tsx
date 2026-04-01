@@ -29,7 +29,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -45,6 +45,11 @@ export default function ListPage({ params }: Props) {
   const [pageScale, setPageScale] = useState(1);
   const [previewPage, setPreviewPage] = useState(0);
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
+
+  // Options panel
+  const [showOptions, setShowOptions] = useState(false);
+  const colorStripRef = useRef<HTMLDivElement>(null);
+  const isDraggingStrip = useRef(false);
 
   // Refs for measurement
   const measureRef = useRef<HTMLDivElement>(null);
@@ -214,14 +219,30 @@ export default function ListPage({ params }: Props) {
     }
   }
 
+  // Compute list custom background from stored hue
+  const isDark = document.documentElement.classList.contains("dark");
+  const listBg = list.bgHue !== undefined
+    ? isDark
+      ? `hsl(${list.bgHue} 14% 16%)`
+      : `hsl(${list.bgHue} 20% 93%)`
+    : undefined;
+
+  function hueFromPointer(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = colorStripRef.current!.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    return Math.round((x / rect.width) * 360);
+  }
+
   return (
     <div
       className="min-h-screen"
-      style={previewMode ? { overflow: "hidden" } : { paddingBottom: "6rem" }}
+      style={previewMode
+        ? { overflow: "hidden", ...(listBg ? { backgroundColor: listBg } : {}) }
+        : { paddingBottom: "6rem", ...(listBg ? { backgroundColor: listBg } : {}) }}
     >
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 
-        {/* Top bar: back + preview toggle */}
+        {/* Top bar: back + right buttons */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate(backPath)}
@@ -231,19 +252,123 @@ export default function ListPage({ params }: Props) {
             <span>{backLabel}</span>
           </button>
 
-          <button
-            onClick={handleTogglePreview}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
-            style={
-              previewMode
-                ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
-                : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
-            }
-            aria-label="Toggle preview mode"
-          >
-            <span>📷</span>
-            <span>{previewMode ? "Exit Preview" : "Preview"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleTogglePreview}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
+              style={
+                previewMode
+                  ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
+                  : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
+              }
+              aria-label="Toggle preview mode"
+            >
+              <span>📷</span>
+              <span>{previewMode ? "Exit Preview" : "Preview"}</span>
+            </button>
+
+            {/* Options button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowOptions((v) => !v)}
+                className="w-8 h-8 rounded-full border flex items-center justify-center text-base font-bold transition-colors"
+                style={{
+                  backgroundColor: showOptions ? "hsl(var(--primary))" : "hsl(var(--muted))",
+                  color: showOptions ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
+                  borderColor: showOptions ? "hsl(var(--primary))" : "hsl(var(--border))",
+                }}
+                aria-label="Options"
+              >
+                ⋯
+              </button>
+
+              {showOptions && (
+                <>
+                  {/* Backdrop to close */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowOptions(false)}
+                  />
+                  {/* Dropdown panel */}
+                  <div
+                    className="absolute right-0 top-10 z-50 w-64 rounded-2xl shadow-lg border p-4 flex flex-col gap-3"
+                    style={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderColor: "hsl(var(--border))",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--muted-foreground))" }}>
+                      Background color
+                    </p>
+
+                    {/* Hue gradient strip */}
+                    <div
+                      ref={colorStripRef}
+                      className="relative h-7 rounded-full cursor-pointer select-none touch-none"
+                      style={{
+                        background: "linear-gradient(to right, hsl(0,65%,58%), hsl(30,65%,58%), hsl(60,65%,58%), hsl(90,65%,58%), hsl(120,65%,58%), hsl(150,65%,58%), hsl(180,65%,58%), hsl(210,65%,58%), hsl(240,65%,58%), hsl(270,65%,58%), hsl(300,65%,58%), hsl(330,65%,58%), hsl(360,65%,58%))",
+                      }}
+                      onPointerDown={(e) => {
+                        isDraggingStrip.current = true;
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        setListBgColor(id, hueFromPointer(e));
+                      }}
+                      onPointerMove={(e) => {
+                        if (!isDraggingStrip.current) return;
+                        setListBgColor(id, hueFromPointer(e));
+                      }}
+                      onPointerUp={() => { isDraggingStrip.current = false; }}
+                    >
+                      {/* Selection indicator */}
+                      {list.bgHue !== undefined && (
+                        <div
+                          className="absolute top-0.5 bottom-0.5 w-5 rounded-full border-2 border-white shadow"
+                          style={{
+                            left: `calc(${(list.bgHue / 360) * 100}% - 10px)`,
+                            backgroundColor: `hsl(${list.bgHue} 65% 58%)`,
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Current color preview + reset */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {list.bgHue !== undefined ? (
+                          <>
+                            <div
+                              className="w-5 h-5 rounded-full border"
+                              style={{
+                                backgroundColor: listBg,
+                                borderColor: "hsl(var(--border))",
+                              }}
+                            />
+                            <span className="text-xs" style={{ color: "hsl(var(--foreground))" }}>
+                              Hue {list.bgHue}°
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
+                            No color set
+                          </span>
+                        )}
+                      </div>
+                      {list.bgHue !== undefined && (
+                        <button
+                          onClick={() => setListBgColor(id, null)}
+                          className="text-xs hover:opacity-70 transition-opacity"
+                          style={{ color: "hsl(var(--muted-foreground))" }}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Title row */}
