@@ -21,8 +21,8 @@ function sortLabel(mode: SortMode) {
   return "custom order";
 }
 
-// Minimum acceptable scale before we switch to paginated pages
-const MIN_PREVIEW_SCALE = 0.70;
+// Max items shown per preview page
+const ITEMS_PER_PAGE = 10;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -41,7 +41,6 @@ export default function ListPage({ params }: Props) {
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
   const [pageScale, setPageScale] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number | null>(null); // null = all on one page
   const [previewPage, setPreviewPage] = useState(0);
 
   // Refs for measurement
@@ -63,7 +62,8 @@ export default function ListPage({ params }: Props) {
     if (editingDesc) setTimeout(() => descRef.current?.focus(), 30);
   }, [editingDesc]);
 
-  // Compute preview layout (scale + pagination) whenever mode or item count changes
+  // Compute preview scale whenever mode or item count changes.
+  // Scale is based on fitting ITEMS_PER_PAGE items so it stays consistent across pages.
   useLayoutEffect(() => {
     const itemCount = list?.items.length ?? 0;
     const previewModeChanged = prevPreviewModeRef.current !== previewMode;
@@ -75,7 +75,6 @@ export default function ListPage({ params }: Props) {
     if (!previewMode) {
       if (previewModeChanged) {
         setPageScale(1);
-        setItemsPerPage(null);
         setPreviewPage(0);
       }
       return;
@@ -84,28 +83,22 @@ export default function ListPage({ params }: Props) {
     if (!previewModeChanged && !itemCountChanged) return;
     if (!measureRef.current || !itemsRef.current) return;
 
-    // Reset page when re-measuring
     setPreviewPage(0);
 
     const naturalHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
     const availableHeight = window.innerHeight - rect.top - 8;
 
-    if (naturalHeight <= 0 || availableHeight <= 0) return;
+    if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
-    const fullScale = availableHeight / naturalHeight;
-
-    if (fullScale >= MIN_PREVIEW_SCALE) {
-      // All items fit on one page at an acceptable scale
-      setItemsPerPage(null);
-      setPageScale(fullScale);
-    } else {
-      // Too many items — paginate. Compute how many fit per page at scale=1
-      const perItemHeight = naturalHeight / Math.max(1, itemCount);
-      const ipp = Math.max(1, Math.floor(availableHeight / perItemHeight));
-      setItemsPerPage(ipp);
-      setPageScale(1);
-    }
+    // Compute a consistent scale based on a full page of ITEMS_PER_PAGE items.
+    // If fewer items exist, base it on however many there are (capped at ITEMS_PER_PAGE).
+    const perItemHeight = naturalHeight / itemCount;
+    const referenceItems = Math.min(ITEMS_PER_PAGE, itemCount);
+    const referenceHeight = perItemHeight * referenceItems;
+    // Cap at 1 so items are never larger than their natural size
+    const scale = Math.min(1, availableHeight / referenceHeight);
+    setPageScale(scale);
   }, [previewMode, list?.items.length]);
 
   if (!list) {
@@ -134,13 +127,11 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Pagination derived values
-  const totalPages = itemsPerPage !== null
-    ? Math.ceil(displayedItems.length / itemsPerPage)
-    : 1;
+  // Pagination derived values — always ITEMS_PER_PAGE per page in preview mode
+  const totalPages = previewMode ? Math.ceil(displayedItems.length / ITEMS_PER_PAGE) : 1;
   const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
-  const pageStart = safePage * (itemsPerPage ?? displayedItems.length);
-  const pageEnd = Math.min(pageStart + (itemsPerPage ?? displayedItems.length), displayedItems.length);
+  const pageStart = safePage * ITEMS_PER_PAGE;
+  const pageEnd = Math.min(pageStart + ITEMS_PER_PAGE, displayedItems.length);
   const currentPageItems = previewMode
     ? displayedItems.slice(pageStart, pageEnd)
     : displayedItems;
