@@ -395,55 +395,6 @@ export default function ListPage({ params }: Props) {
               ))}
             </div>
 
-            {/* Page navigation — arrows + dots */}
-            {previewMode && totalPages > 1 && (
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <button
-                  onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
-                  disabled={safePage === 0}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25"
-                  style={{
-                    backgroundColor: "hsl(var(--muted))",
-                    color: "hsl(var(--foreground))",
-                  }}
-                  aria-label="Previous page"
-                >
-                  ‹
-                </button>
-
-                <div className="flex items-center gap-1.5">
-                  {Array.from({ length: totalPages }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setPreviewPage(i)}
-                      aria-label={`Page ${i + 1}`}
-                      className="rounded-full transition-all"
-                      style={{
-                        width: i === safePage ? 20 : 8,
-                        height: 8,
-                        backgroundColor:
-                          i === safePage
-                            ? "hsl(var(--primary))"
-                            : "hsl(var(--muted-foreground) / 35%)",
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setPreviewPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={safePage === totalPages - 1}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25"
-                  style={{
-                    backgroundColor: "hsl(var(--muted))",
-                    color: "hsl(var(--foreground))",
-                  }}
-                  aria-label="Next page"
-                >
-                  ›
-                </button>
-              </div>
-            )}
           </>
         )}
         {/* Note section — below items, hidden in preview mode */}
@@ -521,6 +472,56 @@ export default function ListPage({ params }: Props) {
             aria-label="Add item"
           >
             +
+          </button>
+        </div>
+      )}
+
+      {/* Page navigation — fixed at bottom center so it never shifts with item count */}
+      {previewMode && totalPages > 1 && (
+        <div className="fixed bottom-6 left-0 right-0 flex items-center justify-center gap-3 z-50 pointer-events-none">
+          <button
+            onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+            disabled={safePage === 0}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25 pointer-events-auto"
+            style={{
+              backgroundColor: "hsl(var(--muted))",
+              color: "hsl(var(--foreground))",
+            }}
+            aria-label="Previous page"
+          >
+            ‹
+          </button>
+
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPreviewPage(i)}
+                aria-label={`Page ${i + 1}`}
+                className="rounded-full transition-all"
+                style={{
+                  width: i === safePage ? 20 : 8,
+                  height: 8,
+                  backgroundColor:
+                    i === safePage
+                      ? "hsl(var(--primary))"
+                      : "hsl(var(--muted-foreground) / 35%)",
+                }}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => setPreviewPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={safePage === totalPages - 1}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25 pointer-events-auto"
+            style={{
+              backgroundColor: "hsl(var(--muted))",
+              color: "hsl(var(--foreground))",
+            }}
+            aria-label="Next page"
+          >
+            ›
           </button>
         </div>
       )}
