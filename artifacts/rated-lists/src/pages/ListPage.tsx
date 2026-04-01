@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
@@ -21,8 +21,6 @@ function sortLabel(mode: SortMode) {
   return "custom order";
 }
 
-const PREVIEW_SCALE = 0.58;
-
 export default function ListPage({ params }: Props) {
   const { id } = params;
   const [, navigate] = useLocation();
@@ -36,6 +34,9 @@ export default function ListPage({ params }: Props) {
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState("");
   const [previewMode, setPreviewMode] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const itemsRef = useRef<HTMLDivElement>(null);
+  const prevItemCountRef = useRef(0);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,6 +49,33 @@ export default function ListPage({ params }: Props) {
   useEffect(() => {
     if (editingDesc) setTimeout(() => descRef.current?.focus(), 30);
   }, [editingDesc]);
+
+  // Measure items container and compute the exact scale to fill the screen
+  useLayoutEffect(() => {
+    if (!previewMode || previewScale !== 1 || !itemsRef.current) return;
+
+    const el = itemsRef.current;
+    const naturalHeight = el.scrollHeight;
+    const rect = el.getBoundingClientRect();
+    const availableHeight = window.innerHeight - rect.top - 8;
+
+    if (naturalHeight > 0 && availableHeight > 0 && naturalHeight > availableHeight) {
+      setPreviewScale(availableHeight / naturalHeight);
+    } else {
+      // Items already fit; mark as measured so we don't loop
+      setPreviewScale(0.9999);
+    }
+  }, [previewMode, previewScale]);
+
+  // Re-measure when item count changes while in preview mode
+  useEffect(() => {
+    if (!list) return;
+    const count = list.items.length;
+    if (previewMode && prevItemCountRef.current !== count) {
+      setPreviewScale(1);
+    }
+    prevItemCountRef.current = count;
+  }, [previewMode, list?.items.length]);
 
   if (!list) {
     return (
@@ -73,6 +101,11 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => b.rating - a.rating);
   } else if (currentSortMode === "name") {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function handleTogglePreview() {
+    setPreviewMode((v) => !v);
+    setPreviewScale(1); // reset so useLayoutEffect re-measures
   }
 
   function startTitleEdit() {
@@ -107,7 +140,7 @@ export default function ListPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background" style={previewMode ? { overflow: "hidden" } : { paddingBottom: "6rem" }}>
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <div className="flex items-center justify-between mb-6">
           <button
@@ -119,7 +152,7 @@ export default function ListPage({ params }: Props) {
           </button>
 
           <button
-            onClick={() => setPreviewMode((v) => !v)}
+            onClick={handleTogglePreview}
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
             style={
               previewMode
@@ -234,7 +267,7 @@ export default function ListPage({ params }: Props) {
           </p>
         )}
 
-        {previewMode && <div className="mb-3" />}
+        {previewMode && <div className="mb-2" />}
 
         {displayedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
@@ -242,7 +275,11 @@ export default function ListPage({ params }: Props) {
             <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
           </div>
         ) : (
-          <div className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}>
+          <div
+            ref={itemsRef}
+            className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
+            style={previewMode ? { zoom: `${previewScale * 100}%`, transformOrigin: "top left" } : undefined}
+          >
             {displayedItems.map((item, index) => (
               <ItemRow
                 key={item.id}
@@ -256,7 +293,6 @@ export default function ListPage({ params }: Props) {
                 onMoveDown={() => moveItem(id, item.id, "down")}
                 isFirst={index === 0}
                 isLast={index === displayedItems.length - 1}
-                scale={previewMode ? PREVIEW_SCALE : 1}
               />
             ))}
           </div>
