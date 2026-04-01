@@ -59,6 +59,8 @@ export default function ListPage({ params }: Props) {
 
   const list = getList(id);
 
+  useEffect(() => { document.body.dataset.page = "list"; }, []);
+
   useEffect(() => {
     if (editingTitle) setTimeout(() => titleInputRef.current?.focus(), 30);
   }, [editingTitle]);
@@ -215,7 +217,7 @@ export default function ListPage({ params }: Props) {
   return (
     <div
       className="min-h-screen"
-      style={previewMode ? { overflow: "hidden", backgroundColor: "hsl(var(--bg-list))" } : { paddingBottom: "6rem", backgroundColor: "hsl(var(--bg-list))" }}
+      style={previewMode ? { overflow: "hidden" } : { paddingBottom: "6rem" }}
     >
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import { useTheme } from "@/hooks/useTheme";
@@ -10,6 +10,8 @@ import { SettingsSheet } from "@/components/SettingsSheet";
 import type { SortMode } from "@/hooks/useLists";
 
 export default function Home() {
+  useEffect(() => { document.body.dataset.page = "home"; }, []);
+
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("added");
@@ -142,7 +144,7 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen pb-24" style={{ backgroundColor: "hsl(var(--bg-home))" }}>
+    <div className="min-h-screen pb-24">
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>

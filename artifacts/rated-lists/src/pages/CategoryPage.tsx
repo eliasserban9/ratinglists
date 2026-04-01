@@ -34,6 +34,8 @@ export default function CategoryPage({ params }: Props) {
   const category = getCategory(id);
   const rawLists = getListsForCategory(id);
 
+  useEffect(() => { document.body.dataset.page = "category"; }, []);
+
   useEffect(() => {
     if (editingTitle) setTimeout(() => titleInputRef.current?.focus(), 30);
   }, [editingTitle]);
@@ -82,7 +84,7 @@ export default function CategoryPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen pb-24" style={{ backgroundColor: "hsl(var(--bg-category))" }}>
+    <div className="min-h-screen pb-24">
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <button
           onClick={() => navigate("/")}
