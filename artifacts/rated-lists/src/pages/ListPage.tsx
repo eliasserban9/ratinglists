@@ -225,14 +225,26 @@ export default function ListPage({ params }: Props) {
   const isDark = document.documentElement.classList.contains("dark");
   const defaultLightness = isDark ? 13 : 78;
   const bgLightness = list.bgLightness ?? defaultLightness;
+  // bgHue is stored 0–400; values >360 enter the grey/black zone (sat=0)
+  const isGrey = list.bgHue !== undefined && list.bgHue > 360;
   const listBg = list.bgHue !== undefined
-    ? `hsl(${list.bgHue} ${isDark ? 42 : 62}% ${bgLightness}%)`
+    ? isGrey
+      ? `hsl(0 0% ${bgLightness}%)`
+      : `hsl(${list.bgHue} ${isDark ? 42 : 62}% ${bgLightness}%)`
     : undefined;
+
+  // Override CSS text variables so all text stays readable against the custom bg
+  const textVars: React.CSSProperties = listBg
+    ? bgLightness > 52
+      ? ({ '--foreground': '222 47% 8%', '--muted-foreground': '215 16% 32%' } as React.CSSProperties)
+      : ({ '--foreground': '210 40% 96%', '--muted-foreground': '215 20% 72%' } as React.CSSProperties)
+    : {};
 
   function hueFromPointer(e: React.PointerEvent<HTMLDivElement>) {
     const rect = colorStripRef.current!.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    return Math.round((x / rect.width) * 360);
+    // 0–400: 0–360 = coloured hues, 361–400 = grey/black zone
+    return Math.round((x / rect.width) * 400);
   }
 
   function lightnessFromPointer(e: React.PointerEvent<HTMLDivElement>) {
@@ -246,8 +258,8 @@ export default function ListPage({ params }: Props) {
     <div
       className="min-h-screen"
       style={previewMode
-        ? { overflow: "hidden", ...(listBg ? { backgroundColor: listBg } : {}) }
-        : { paddingBottom: "6rem", ...(listBg ? { backgroundColor: listBg } : {}) }}
+        ? { overflow: "hidden", ...(listBg ? { backgroundColor: listBg } : {}), ...textVars }
+        : { paddingBottom: "6rem", ...(listBg ? { backgroundColor: listBg } : {}), ...textVars }}
     >
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 
@@ -316,7 +328,7 @@ export default function ListPage({ params }: Props) {
                       ref={colorStripRef}
                       className="relative h-7 rounded-full cursor-pointer select-none touch-none"
                       style={{
-                        background: "linear-gradient(to right, hsl(0,65%,58%), hsl(30,65%,58%), hsl(60,65%,58%), hsl(90,65%,58%), hsl(120,65%,58%), hsl(150,65%,58%), hsl(180,65%,58%), hsl(210,65%,58%), hsl(240,65%,58%), hsl(270,65%,58%), hsl(300,65%,58%), hsl(330,65%,58%), hsl(360,65%,58%))",
+                        background: "linear-gradient(to right, hsl(0,65%,58%), hsl(30,65%,58%), hsl(60,65%,58%), hsl(90,65%,58%), hsl(120,65%,58%), hsl(150,65%,58%), hsl(180,65%,58%), hsl(210,65%,58%), hsl(240,65%,58%), hsl(270,65%,58%), hsl(300,65%,58%), hsl(330,65%,58%), hsl(360,65%,58%), #000000)",
                       }}
                       onPointerDown={(e) => {
                         isDraggingStrip.current = true;
@@ -333,8 +345,8 @@ export default function ListPage({ params }: Props) {
                         <div
                           className="absolute top-0.5 bottom-0.5 w-5 rounded-full border-2 border-white shadow"
                           style={{
-                            left: `calc(${(list.bgHue / 360) * 100}% - 10px)`,
-                            backgroundColor: `hsl(${list.bgHue} 65% 58%)`,
+                            left: `calc(${(list.bgHue / 400) * 100}% - 10px)`,
+                            backgroundColor: isGrey ? `hsl(0 0% 50%)` : `hsl(${list.bgHue} 65% 58%)`,
                           }}
                         />
                       )}
