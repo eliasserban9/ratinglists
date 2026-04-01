@@ -29,7 +29,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListBgLightness,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -50,6 +50,8 @@ export default function ListPage({ params }: Props) {
   const [showOptions, setShowOptions] = useState(false);
   const colorStripRef = useRef<HTMLDivElement>(null);
   const isDraggingStrip = useRef(false);
+  const lightnessStripRef = useRef<HTMLDivElement>(null);
+  const isDraggingLightness = useRef(false);
 
   // Refs for measurement
   const measureRef = useRef<HTMLDivElement>(null);
@@ -219,18 +221,25 @@ export default function ListPage({ params }: Props) {
     }
   }
 
-  // Compute list custom background from stored hue
+  // Compute list custom background from stored hue + lightness
   const isDark = document.documentElement.classList.contains("dark");
+  const defaultLightness = isDark ? 13 : 78;
+  const bgLightness = list.bgLightness ?? defaultLightness;
   const listBg = list.bgHue !== undefined
-    ? isDark
-      ? `hsl(${list.bgHue} 42% 13%)`
-      : `hsl(${list.bgHue} 62% 78%)`
+    ? `hsl(${list.bgHue} ${isDark ? 42 : 62}% ${bgLightness}%)`
     : undefined;
 
   function hueFromPointer(e: React.PointerEvent<HTMLDivElement>) {
     const rect = colorStripRef.current!.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     return Math.round((x / rect.width) * 360);
+  }
+
+  function lightnessFromPointer(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = lightnessStripRef.current!.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    // left = white (100%), right = black (0%)
+    return Math.round(100 - (x / rect.width) * 100);
   }
 
   return (
@@ -320,7 +329,6 @@ export default function ListPage({ params }: Props) {
                       }}
                       onPointerUp={() => { isDraggingStrip.current = false; }}
                     >
-                      {/* Selection indicator */}
                       {list.bgHue !== undefined && (
                         <div
                           className="absolute top-0.5 bottom-0.5 w-5 rounded-full border-2 border-white shadow"
@@ -331,6 +339,33 @@ export default function ListPage({ params }: Props) {
                         />
                       )}
                     </div>
+
+                    {/* Lightness strip — white (left) to black (right) */}
+                    {list.bgHue !== undefined && (
+                      <div
+                        ref={lightnessStripRef}
+                        className="relative h-7 rounded-full cursor-pointer select-none touch-none"
+                        style={{ background: "linear-gradient(to right, #ffffff, #000000)" }}
+                        onPointerDown={(e) => {
+                          isDraggingLightness.current = true;
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                          setListBgLightness(id, lightnessFromPointer(e));
+                        }}
+                        onPointerMove={(e) => {
+                          if (!isDraggingLightness.current) return;
+                          setListBgLightness(id, lightnessFromPointer(e));
+                        }}
+                        onPointerUp={() => { isDraggingLightness.current = false; }}
+                      >
+                        <div
+                          className="absolute top-0.5 bottom-0.5 w-5 rounded-full border-2 border-white shadow"
+                          style={{
+                            left: `calc(${100 - bgLightness}% - 10px)`,
+                            backgroundColor: `hsl(0 0% ${bgLightness}%)`,
+                          }}
+                        />
+                      </div>
+                    )}
 
                     {/* Current color preview + reset */}
                     <div className="flex items-center justify-between">
