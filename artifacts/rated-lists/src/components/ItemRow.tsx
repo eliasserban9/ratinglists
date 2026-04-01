@@ -16,12 +16,13 @@ interface Props {
   isFirst?: boolean;
   isLast?: boolean;
   scale?: number;
+  hideDelete?: boolean;
 }
 
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,
-  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1,
+  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, hideDelete = false,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -166,26 +167,28 @@ export function ItemRow({
               {fmt(item.rating)}/10
             </button>
 
-            <button
-              onClick={handleDelete}
-              className="text-xs px-2 py-1 rounded-lg transition-colors"
-              style={
-                confirmDelete
-                  ? { backgroundColor: "rgba(239,68,68,0.3)", color: "#fca5a5" }
-                  : { color: s.deleteColor, backgroundColor: "transparent" }
-              }
-              onMouseEnter={(e) => {
-                if (!confirmDelete)
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = s.deleteBg;
-              }}
-              onMouseLeave={(e) => {
-                if (!confirmDelete)
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
-              }}
-              aria-label="Delete item"
-            >
-              {confirmDelete ? "Sure?" : "✕"}
-            </button>
+            {!hideDelete && (
+              <button
+                onClick={handleDelete}
+                className="text-xs px-2 py-1 rounded-lg transition-colors"
+                style={
+                  confirmDelete
+                    ? { backgroundColor: "rgba(239,68,68,0.3)", color: "#fca5a5" }
+                    : { color: s.deleteColor, backgroundColor: "transparent" }
+                }
+                onMouseEnter={(e) => {
+                  if (!confirmDelete)
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = s.deleteBg;
+                }}
+                onMouseLeave={(e) => {
+                  if (!confirmDelete)
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+                }}
+                aria-label="Delete item"
+              >
+                {confirmDelete ? "Sure?" : "✕"}
+              </button>
+            )}
           </div>
         </div>
       </div>

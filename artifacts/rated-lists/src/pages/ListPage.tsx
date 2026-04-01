@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
@@ -21,6 +21,9 @@ function sortLabel(mode: SortMode) {
   return "custom order";
 }
 
+// Minimum acceptable scale before we switch to paginated pages
+const MIN_PREVIEW_SCALE = 0.70;
+
 export default function ListPage({ params }: Props) {
   const { id } = params;
   const [, navigate] = useLocation();
@@ -28,15 +31,25 @@ export default function ListPage({ params }: Props) {
     getList, getCategory, addItem, updateItemRating, deleteItem,
     setSortMode, moveItem, renameList, renameItem, setListDescription,
   } = useLists();
+
   const [open, setOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState("");
+
+  // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
-  const [previewScale, setPreviewScale] = useState(1);
+  const [pageScale, setPageScale] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number | null>(null); // null = all on one page
+  const [previewPage, setPreviewPage] = useState(0);
+
+  // Refs for measurement
+  const measureRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
+  const prevPreviewModeRef = useRef(false);
   const prevItemCountRef = useRef(0);
+
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,31 +63,49 @@ export default function ListPage({ params }: Props) {
     if (editingDesc) setTimeout(() => descRef.current?.focus(), 30);
   }, [editingDesc]);
 
-  // Measure items container and compute the exact scale to fill the screen
+  // Compute preview layout (scale + pagination) whenever mode or item count changes
   useLayoutEffect(() => {
-    if (!previewMode || previewScale !== 1 || !itemsRef.current) return;
+    const itemCount = list?.items.length ?? 0;
+    const previewModeChanged = prevPreviewModeRef.current !== previewMode;
+    const itemCountChanged = prevItemCountRef.current !== itemCount;
 
-    const el = itemsRef.current;
-    const naturalHeight = el.scrollHeight;
-    const rect = el.getBoundingClientRect();
+    prevPreviewModeRef.current = previewMode;
+    prevItemCountRef.current = itemCount;
+
+    if (!previewMode) {
+      if (previewModeChanged) {
+        setPageScale(1);
+        setItemsPerPage(null);
+        setPreviewPage(0);
+      }
+      return;
+    }
+
+    if (!previewModeChanged && !itemCountChanged) return;
+    if (!measureRef.current || !itemsRef.current) return;
+
+    // Reset page when re-measuring
+    setPreviewPage(0);
+
+    const naturalHeight = measureRef.current.scrollHeight;
+    const rect = itemsRef.current.getBoundingClientRect();
     const availableHeight = window.innerHeight - rect.top - 8;
 
-    if (naturalHeight > 0 && availableHeight > 0 && naturalHeight > availableHeight) {
-      setPreviewScale(availableHeight / naturalHeight);
-    } else {
-      // Items already fit; mark as measured so we don't loop
-      setPreviewScale(0.9999);
-    }
-  }, [previewMode, previewScale]);
+    if (naturalHeight <= 0 || availableHeight <= 0) return;
 
-  // Re-measure when item count changes while in preview mode
-  useEffect(() => {
-    if (!list) return;
-    const count = list.items.length;
-    if (previewMode && prevItemCountRef.current !== count) {
-      setPreviewScale(1);
+    const fullScale = availableHeight / naturalHeight;
+
+    if (fullScale >= MIN_PREVIEW_SCALE) {
+      // All items fit on one page at an acceptable scale
+      setItemsPerPage(null);
+      setPageScale(fullScale);
+    } else {
+      // Too many items — paginate. Compute how many fit per page at scale=1
+      const perItemHeight = naturalHeight / Math.max(1, itemCount);
+      const ipp = Math.max(1, Math.floor(availableHeight / perItemHeight));
+      setItemsPerPage(ipp);
+      setPageScale(1);
     }
-    prevItemCountRef.current = count;
   }, [previewMode, list?.items.length]);
 
   if (!list) {
@@ -103,9 +134,19 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  // Pagination derived values
+  const totalPages = itemsPerPage !== null
+    ? Math.ceil(displayedItems.length / itemsPerPage)
+    : 1;
+  const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
+  const pageStart = safePage * (itemsPerPage ?? displayedItems.length);
+  const pageEnd = Math.min(pageStart + (itemsPerPage ?? displayedItems.length), displayedItems.length);
+  const currentPageItems = previewMode
+    ? displayedItems.slice(pageStart, pageEnd)
+    : displayedItems;
+
   function handleTogglePreview() {
     setPreviewMode((v) => !v);
-    setPreviewScale(1); // reset so useLayoutEffect re-measures
   }
 
   function startTitleEdit() {
@@ -140,8 +181,13 @@ export default function ListPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background" style={previewMode ? { overflow: "hidden" } : { paddingBottom: "6rem" }}>
+    <div
+      className="min-h-screen bg-background"
+      style={previewMode ? { overflow: "hidden" } : { paddingBottom: "6rem" }}
+    >
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
+
+        {/* Top bar: back + preview toggle */}
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate(backPath)}
@@ -156,16 +202,8 @@ export default function ListPage({ params }: Props) {
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
             style={
               previewMode
-                ? {
-                    backgroundColor: "hsl(var(--primary))",
-                    color: "hsl(var(--primary-foreground))",
-                    borderColor: "hsl(var(--primary))",
-                  }
-                : {
-                    backgroundColor: "hsl(var(--muted))",
-                    color: "hsl(var(--muted-foreground))",
-                    borderColor: "hsl(var(--border))",
-                  }
+                ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
+                : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
             }
             aria-label="Toggle preview mode"
           >
@@ -223,8 +261,10 @@ export default function ListPage({ params }: Props) {
 
         {/* Average rating badge */}
         {avgColors && avg !== null && (
-          <div className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl mb-2"
-            style={{ backgroundColor: avgColors.bg }}>
+          <div
+            className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl mb-2"
+            style={{ backgroundColor: avgColors.bg }}
+          >
             <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
               {fmt(avg)}
             </span>
@@ -275,27 +315,102 @@ export default function ListPage({ params }: Props) {
             <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
           </div>
         ) : (
-          <div
-            ref={itemsRef}
-            className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
-            style={previewMode ? { zoom: `${previewScale * 100}%`, transformOrigin: "top left" } : undefined}
-          >
-            {displayedItems.map((item, index) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                rank={index + 1}
-                onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
-                onRename={(name) => renameItem(id, item.id, name)}
-                onDelete={() => deleteItem(id, item.id)}
-                showMoveBar={!previewMode && currentSortMode === "added"}
-                onMoveUp={() => moveItem(id, item.id, "up")}
-                onMoveDown={() => moveItem(id, item.id, "down")}
-                isFirst={index === 0}
-                isLast={index === displayedItems.length - 1}
-              />
-            ))}
-          </div>
+          <>
+            {/* Off-screen measurement div — always has ALL items at natural scale */}
+            {previewMode && (
+              <div
+                ref={measureRef}
+                className="flex flex-col gap-0.5"
+                style={{ position: "absolute", top: -9999, left: 0, right: 0, visibility: "hidden", pointerEvents: "none" }}
+                aria-hidden="true"
+              >
+                {displayedItems.map((item, index) => (
+                  <ItemRow
+                    key={`measure-${item.id}`}
+                    item={item}
+                    rank={index + 1}
+                    onRatingChange={() => {}}
+                    onDelete={() => {}}
+                    hideDelete
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Visible items area */}
+            <div
+              ref={itemsRef}
+              className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
+              style={previewMode ? { zoom: `${pageScale * 100}%` } : undefined}
+            >
+              {currentPageItems.map((item, index) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  rank={pageStart + index + 1}
+                  onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
+                  onRename={(name) => renameItem(id, item.id, name)}
+                  onDelete={() => deleteItem(id, item.id)}
+                  showMoveBar={!previewMode && currentSortMode === "added"}
+                  onMoveUp={() => moveItem(id, item.id, "up")}
+                  onMoveDown={() => moveItem(id, item.id, "down")}
+                  isFirst={index === 0}
+                  isLast={index === currentPageItems.length - 1}
+                  hideDelete={previewMode}
+                />
+              ))}
+            </div>
+
+            {/* Page navigation — arrows + dots */}
+            {previewMode && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <button
+                  onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+                  disabled={safePage === 0}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25"
+                  style={{
+                    backgroundColor: "hsl(var(--muted))",
+                    color: "hsl(var(--foreground))",
+                  }}
+                  aria-label="Previous page"
+                >
+                  ‹
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPreviewPage(i)}
+                      aria-label={`Page ${i + 1}`}
+                      className="rounded-full transition-all"
+                      style={{
+                        width: i === safePage ? 20 : 8,
+                        height: 8,
+                        backgroundColor:
+                          i === safePage
+                            ? "hsl(var(--primary))"
+                            : "hsl(var(--muted-foreground) / 35%)",
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setPreviewPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={safePage === totalPages - 1}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25"
+                  style={{
+                    backgroundColor: "hsl(var(--muted))",
+                    color: "hsl(var(--foreground))",
+                  }}
+                  aria-label="Next page"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -304,7 +419,9 @@ export default function ListPage({ params }: Props) {
           onClick={() => setOpen(true)}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center text-2xl font-light hover:opacity-90 active:scale-95 transition-all z-50"
           aria-label="Add item"
-        >+</button>
+        >
+          +
+        </button>
       )}
 
       <NewItemDialog
