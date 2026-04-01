@@ -82,7 +82,7 @@ export default function CategoryPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen pb-24" style={{ backgroundColor: "hsl(var(--bg-category))" }}>
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <button
           onClick={() => navigate("/")}

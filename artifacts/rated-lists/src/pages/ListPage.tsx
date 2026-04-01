@@ -214,8 +214,8 @@ export default function ListPage({ params }: Props) {
 
   return (
     <div
-      className="min-h-screen bg-background"
-      style={previewMode ? { overflow: "hidden" } : { paddingBottom: "6rem" }}
+      className="min-h-screen"
+      style={previewMode ? { overflow: "hidden", backgroundColor: "hsl(var(--bg-list))" } : { paddingBottom: "6rem", backgroundColor: "hsl(var(--bg-list))" }}
     >
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 
@@ -459,7 +459,7 @@ export default function ListPage({ params }: Props) {
                   className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground placeholder:text-muted-foreground/50"
                   style={{ borderColor: "hsl(var(--border))" }}
                 />
-                <div className="flex justify-end">
+                <div className="flex justify-start">
                   <button
                     onMouseDown={(e) => { e.preventDefault(); commitNoteEdit(); }}
                     className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
