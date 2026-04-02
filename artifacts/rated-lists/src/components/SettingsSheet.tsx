@@ -7,11 +7,12 @@ interface Props {
   onUpload: (file: File) => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  onOpenTrash: () => void;
 }
 
 export function SettingsSheet({
   open, onClose, onDownload, onUpload,
-  theme, onToggleTheme,
+  theme, onToggleTheme, onOpenTrash,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +89,19 @@ export function SettingsSheet({
               <div className="font-semibold text-sm text-foreground">Upload Data</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 Restore from a previously downloaded JSON file
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => { onClose(); onOpenTrash(); }}
+            className="flex items-center gap-4 w-full text-left bg-muted hover:bg-muted/80 border border-border rounded-2xl px-4 py-4 transition-colors active:scale-[.98]"
+          >
+            <span className="text-2xl">🗑️</span>
+            <div>
+              <div className="font-semibold text-sm text-foreground">Trash</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                View and restore recently deleted lists and categories
               </div>
             </div>
           </button>
