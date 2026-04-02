@@ -38,13 +38,29 @@ export interface StandaloneItem {
   updatedAt: number;
 }
 
+export interface TrashItem {
+  id: string;
+  deletedAt: number;
+  type: "list" | "category";
+  list?: RatedList;
+  category?: Category;
+  categoryLists?: RatedList[];
+}
+
 interface StoredData {
   lists: RatedList[];
   categories: Category[];
   standaloneItems: StandaloneItem[];
+  trash: TrashItem[];
 }
 
 const STORAGE_KEY = "rated-lists-data-v2";
+export const TRASH_TTL = 24 * 60 * 60 * 1000;
+
+function purgeExpired(trash: TrashItem[]): TrashItem[] {
+  const cutoff = Date.now() - TRASH_TTL;
+  return trash.filter((t) => t.deletedAt >= cutoff);
+}
 
 function load(): StoredData {
   try {
@@ -61,6 +77,7 @@ function load(): StoredData {
           })),
           categories: Array.isArray(parsed.categories) ? parsed.categories : [],
           standaloneItems: Array.isArray(parsed.standaloneItems) ? parsed.standaloneItems : [],
+          trash: purgeExpired(Array.isArray(parsed.trash) ? parsed.trash : []),
         };
       }
     }
@@ -78,12 +95,13 @@ function load(): StoredData {
           })),
           categories: [],
           standaloneItems: [],
+          trash: [],
         };
       }
     }
-    return { lists: [], categories: [], standaloneItems: [] };
+    return { lists: [], categories: [], standaloneItems: [], trash: [] };
   } catch {
-    return { lists: [], categories: [], standaloneItems: [] };
+    return { lists: [], categories: [], standaloneItems: [], trash: [] };
   }
 }
 
@@ -128,7 +146,10 @@ export function useLists() {
 
   const deleteList = useCallback(
     (id: string) => {
-      persist({ ...data, lists: data.lists.filter((l) => l.id !== id) });
+      const list = data.lists.find((l) => l.id === id);
+      if (!list) return;
+      const trashItem: TrashItem = { id: uid(), deletedAt: Date.now(), type: "list", list };
+      persist({ ...data, lists: data.lists.filter((l) => l.id !== id), trash: [...data.trash, trashItem] });
     },
     [data, persist]
   );
@@ -196,11 +217,37 @@ export function useLists() {
 
   const deleteCategory = useCallback(
     (id: string) => {
+      const category = data.categories.find((c) => c.id === id);
+      if (!category) return;
+      const categoryLists = data.lists.filter((l) => l.categoryId === id);
+      const trashItem: TrashItem = { id: uid(), deletedAt: Date.now(), type: "category", category, categoryLists };
       persist({
         ...data,
         lists: data.lists.filter((l) => l.categoryId !== id),
         categories: data.categories.filter((c) => c.id !== id),
+        trash: [...data.trash, trashItem],
       });
+    },
+    [data, persist]
+  );
+
+  const restoreFromTrash = useCallback(
+    (trashId: string) => {
+      const item = data.trash.find((t) => t.id === trashId);
+      if (!item) return;
+      let newLists = data.lists;
+      let newCategories = data.categories;
+      if (item.type === "list" && item.list) {
+        const catStillExists = item.list.categoryId
+          ? data.categories.some((c) => c.id === item.list!.categoryId)
+          : true;
+        const restoredList = catStillExists ? item.list : { ...item.list, categoryId: undefined };
+        newLists = [restoredList, ...data.lists];
+      } else if (item.type === "category" && item.category) {
+        newCategories = [item.category, ...data.categories];
+        newLists = [...(item.categoryLists ?? []), ...data.lists];
+      }
+      persist({ ...data, lists: newLists, categories: newCategories, trash: data.trash.filter((t) => t.id !== trashId) });
     },
     [data, persist]
   );
@@ -463,6 +510,7 @@ export function useLists() {
         })),
         categories: incoming.categories ?? [],
         standaloneItems: incoming.standaloneItems ?? [],
+        trash: purgeExpired(Array.isArray(incoming.trash) ? incoming.trash : []),
       };
       persist(normalized);
     },
@@ -473,6 +521,7 @@ export function useLists() {
     lists: topLevelLists,
     categories: data.categories,
     standaloneItems: data.standaloneItems,
+    trash: data.trash,
     createList,
     deleteList,
     getList,
@@ -485,6 +534,7 @@ export function useLists() {
     setListBgLightness,
     createCategory,
     deleteCategory,
+    restoreFromTrash,
     getCategory,
     getListsForCategory,
     createListInCategory,

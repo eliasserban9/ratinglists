@@ -7,6 +7,7 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { ItemRow } from "@/components/ItemRow";
 import { CreateTypeDialog } from "@/components/CreateTypeDialog";
 import { SettingsSheet } from "@/components/SettingsSheet";
+import { TrashModal } from "@/components/TrashModal";
 import type { SortMode } from "@/hooks/useLists";
 
 export default function Home() {
@@ -14,8 +15,11 @@ export default function Home() {
 
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("added");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
   const { theme, toggle } = useTheme();
   const {
     lists,
@@ -36,6 +40,17 @@ export default function Home() {
   } = useLists();
   const [, navigate] = useLocation();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!optionsOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (optionsRef.current && !optionsRef.current.contains(e.target as Node)) {
+        setOptionsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [optionsOpen]);
 
   function showToast(msg: string, ok: boolean) {
     setToast({ msg, ok });
@@ -148,17 +163,52 @@ export default function Home() {
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            className="mt-1 w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
-            style={{
-              backgroundColor: "hsl(var(--muted))",
-              color: "hsl(var(--muted-foreground))",
-            }}
-          >
-            ⚙️
-          </button>
+          <div className="flex items-center gap-2 mt-1">
+            {/* Options menu (⋯) */}
+            <div ref={optionsRef} className="relative">
+              <button
+                onClick={() => setOptionsOpen((v) => !v)}
+                aria-label="Options"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+                style={{
+                  backgroundColor: optionsOpen ? "hsl(var(--primary))" : "hsl(var(--muted))",
+                  color: optionsOpen ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
+                }}
+              >
+                ⋯
+              </button>
+              {optionsOpen && (
+                <div
+                  className="absolute right-0 top-11 z-40 rounded-2xl shadow-xl border overflow-hidden min-w-[160px]"
+                  style={{
+                    backgroundColor: "hsl(var(--card))",
+                    borderColor: "hsl(var(--border))",
+                  }}
+                >
+                  <button
+                    className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
+                    style={{ color: "hsl(var(--foreground))" }}
+                    onClick={() => { setOptionsOpen(false); setTrashOpen(true); }}
+                  >
+                    <span>🗑</span>
+                    <span>Trash</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Settings */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Settings"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--muted-foreground))",
+              }}
+            >
+              ⚙️
+            </button>
+          </div>
         </div>
         <div className="flex items-center justify-between mt-1 mb-8">
           <p className="text-muted-foreground text-sm">Rate and rank anything you love</p>
@@ -249,6 +299,7 @@ export default function Home() {
         </div>
       )}
 
+      <TrashModal open={trashOpen} onClose={() => setTrashOpen(false)} />
       <CreateTypeDialog open={open} onClose={() => setOpen(false)} onCreate={handleCreate} />
       <SettingsSheet
         open={settingsOpen}
