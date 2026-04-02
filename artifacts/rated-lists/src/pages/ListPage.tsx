@@ -21,8 +21,8 @@ function sortLabel(mode: SortMode) {
   return "custom order";
 }
 
-// Max items shown per preview page
-const ITEMS_PER_PAGE = 10;
+const MIN_ITEMS_PER_PAGE = 3;
+const MAX_ITEMS_PER_PAGE = 11;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -44,7 +44,9 @@ export default function ListPage({ params }: Props) {
   const [previewMode, setPreviewMode] = useState(false);
   const [pageScale, setPageScale] = useState(1);
   const [previewPage, setPreviewPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
+  const prevItemsPerPageRef = useRef(10);
 
   // Options panel
   const [showOptions, setShowOptions] = useState(false);
@@ -89,15 +91,16 @@ export default function ListPage({ params }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Compute preview scale whenever mode or item count changes.
-  // Scale is based on fitting ITEMS_PER_PAGE items so it stays consistent across pages.
+  // Recompute preview scale whenever mode, item count, or items-per-page changes.
   useLayoutEffect(() => {
     const itemCount = list?.items.length ?? 0;
     const previewModeChanged = prevPreviewModeRef.current !== previewMode;
     const itemCountChanged = prevItemCountRef.current !== itemCount;
+    const ippChanged = prevItemsPerPageRef.current !== itemsPerPage;
 
     prevPreviewModeRef.current = previewMode;
     prevItemCountRef.current = itemCount;
+    prevItemsPerPageRef.current = itemsPerPage;
 
     if (!previewMode) {
       if (previewModeChanged) {
@@ -107,7 +110,7 @@ export default function ListPage({ params }: Props) {
       return;
     }
 
-    if (!previewModeChanged && !itemCountChanged) return;
+    if (!previewModeChanged && !itemCountChanged && !ippChanged) return;
     if (!measureRef.current || !itemsRef.current) return;
 
     setPreviewPage(0);
@@ -118,15 +121,12 @@ export default function ListPage({ params }: Props) {
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
-    // Compute a consistent scale based on a full page of ITEMS_PER_PAGE items.
-    // If fewer items exist, base it on however many there are (capped at ITEMS_PER_PAGE).
     const perItemHeight = naturalHeight / itemCount;
-    const referenceItems = Math.min(ITEMS_PER_PAGE, itemCount);
+    const referenceItems = Math.min(itemsPerPage, itemCount);
     const referenceHeight = perItemHeight * referenceItems;
-    // Cap at 1 so items are never larger than their natural size
     const scale = Math.min(1, availableHeight / referenceHeight);
     setPageScale(scale);
-  }, [previewMode, list?.items.length]);
+  }, [previewMode, list?.items.length, itemsPerPage]);
 
   if (!list) {
     return (
@@ -154,11 +154,11 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Pagination derived values — always ITEMS_PER_PAGE per page in preview mode
-  const totalPages = previewMode ? Math.ceil(displayedItems.length / ITEMS_PER_PAGE) : 1;
+  // Pagination derived values
+  const totalPages = previewMode ? Math.ceil(displayedItems.length / itemsPerPage) : 1;
   const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
-  const pageStart = safePage * ITEMS_PER_PAGE;
-  const pageEnd = Math.min(pageStart + ITEMS_PER_PAGE, displayedItems.length);
+  const pageStart = safePage * itemsPerPage;
+  const pageEnd = Math.min(pageStart + itemsPerPage, displayedItems.length);
   const currentPageItems = previewMode
     ? displayedItems.slice(pageStart, pageEnd)
     : displayedItems;
@@ -274,6 +274,36 @@ export default function ListPage({ params }: Props) {
           </button>
 
           <div className="flex items-center gap-2">
+            {/* Items-per-page stepper — only shown in preview mode */}
+            {previewMode && (
+              <div
+                className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
+                style={{
+                  borderColor: "hsl(var(--border))",
+                  backgroundColor: "hsl(var(--muted))",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                <button
+                  onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
+                  disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
+                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                  aria-label="Fewer items per page"
+                >
+                  −
+                </button>
+                <span className="px-1 tabular-nums">{itemsPerPage}</span>
+                <button
+                  onClick={() => setItemsPerPage((n) => Math.min(MAX_ITEMS_PER_PAGE, n + 1))}
+                  disabled={itemsPerPage >= MAX_ITEMS_PER_PAGE}
+                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                  aria-label="More items per page"
+                >
+                  +
+                </button>
+              </div>
+            )}
+
             <button
               onClick={handleTogglePreview}
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
