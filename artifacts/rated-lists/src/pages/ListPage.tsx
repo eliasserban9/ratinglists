@@ -114,7 +114,7 @@ export default function ListPage({ params }: Props) {
     const rect = itemsRef.current.getBoundingClientRect();
     // Reserve space for the nav bar (bottom-6=24px + h-9=36px + iOS safe area ~34px + margin)
     const willHavePagination = itemCount > itemsPerPage;
-    const bottomReserve = willHavePagination ? 104 : 32;
+    const bottomReserve = willHavePagination ? 72 : 16;
     const availableHeight = window.innerHeight - rect.top - bottomReserve;
 
     if (measuredHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
