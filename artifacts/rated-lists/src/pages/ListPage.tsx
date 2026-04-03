@@ -123,7 +123,7 @@ export default function ListPage({ params }: Props) {
     const scale = Math.min(1.5, availableHeight / measuredHeight);
     setNaturalHeight(measuredHeight);
     setPageScale(scale);
-  }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
+  }, [previewMode, list?.items.length, itemsPerPage, list?.note, list?.coverPhoto]);
 
   if (!list) {
     return (
@@ -689,8 +689,8 @@ export default function ListPage({ params }: Props) {
                     key={item.id}
                     item={item}
                     rank={pageStart + index + 1}
-                    onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
-                    onRename={(name) => renameItem(id, item.id, name)}
+                    onRatingChange={previewMode ? () => {} : (rating) => updateItemRating(id, item.id, rating)}
+                    onRename={previewMode ? undefined : (name) => renameItem(id, item.id, name)}
                     onDelete={() => deleteItem(id, item.id)}
                     showMoveBar={!previewMode && currentSortMode === "added"}
                     onMoveUp={() => moveItem(id, item.id, "up")}
@@ -698,6 +698,7 @@ export default function ListPage({ params }: Props) {
                     isFirst={index === 0}
                     isLast={index === previewItems.length - 1}
                     hideDelete={previewMode}
+                    textScale={previewMode ? 1.4 : 1}
                   />
                 ))}
               </div>
