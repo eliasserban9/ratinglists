@@ -308,24 +308,12 @@ export default function ListPage({ params }: Props) {
     return { hue: domHue, lightness: Math.round(domL) };
   }
 
-  // Given the photo's dominant lightness, pick a background lightness that
-  // always contrasts enough so the photo is visible in front of the background.
-  function contrastBgLightness(photoL: number): number {
-    if (photoL < 50) {
-      // Dark photo → use a clearly lighter background (55–82%)
-      return Math.min(82, Math.max(55, photoL + 45));
-    } else {
-      // Light photo → use a clearly darker background (18–45%)
-      return Math.max(18, Math.min(45, photoL - 45));
-    }
-  }
-
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const canvas = await cropToSquareCanvas(file);
-    const { hue, lightness: photoL } = extractDominantColor(canvas);
-    const bgL = contrastBgLightness(photoL);
+    const { hue, lightness } = extractDominantColor(canvas);
+    const bgL = Math.min(92, lightness + 18);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     applyListPhoto(id, dataUrl, hue, bgL);
     e.target.value = "";
