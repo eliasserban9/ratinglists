@@ -21,7 +21,8 @@ function sortLabel(mode: SortMode) {
   return "custom order";
 }
 
-const MAX_PREVIEW_ITEMS = 15;
+const MIN_ITEMS_PER_PAGE = 3;
+const MAX_ITEMS_PER_PAGE = 15;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -42,7 +43,10 @@ export default function ListPage({ params }: Props) {
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
   const [pageScale, setPageScale] = useState(1);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
+  const prevItemsPerPageRef = useRef(10);
 
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -84,20 +88,28 @@ export default function ListPage({ params }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Recompute preview scale to fit all visible items (up to MAX_PREVIEW_ITEMS) on screen.
+  // Recompute preview scale to fit the current page's items on screen without scrolling.
   useLayoutEffect(() => {
     const itemCount = list?.items.length ?? 0;
     const previewModeChanged = prevPreviewModeRef.current !== previewMode;
+    const ippChanged = prevItemsPerPageRef.current !== itemsPerPage;
 
     prevPreviewModeRef.current = previewMode;
     prevItemCountRef.current = itemCount;
+    prevItemsPerPageRef.current = itemsPerPage;
 
     if (!previewMode) {
-      if (previewModeChanged) setPageScale(1);
+      if (previewModeChanged) {
+        setPageScale(1);
+        setPreviewPage(0);
+      }
       return;
     }
 
+    if (!previewModeChanged && !ippChanged && prevItemCountRef.current === itemCount) return;
     if (!measureRef.current || !itemsRef.current) return;
+
+    setPreviewPage(0);
 
     const naturalHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
@@ -105,12 +117,12 @@ export default function ListPage({ params }: Props) {
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
-    const visibleCount = Math.min(itemCount, MAX_PREVIEW_ITEMS);
+    const referenceItems = Math.min(itemsPerPage, itemCount);
     const perItemHeight = naturalHeight / itemCount;
-    const referenceHeight = perItemHeight * visibleCount;
+    const referenceHeight = perItemHeight * referenceItems;
     const scale = Math.min(1, availableHeight / referenceHeight);
     setPageScale(scale);
-  }, [previewMode, list?.items.length, list?.note]);
+  }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
 
   if (!list) {
     return (
@@ -138,8 +150,12 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // In preview: show up to MAX_PREVIEW_ITEMS, always on one screen (no pagination)
-  const previewItems = previewMode ? displayedItems.slice(0, MAX_PREVIEW_ITEMS) : displayedItems;
+  // Pagination
+  const totalPages = previewMode ? Math.ceil(displayedItems.length / itemsPerPage) : 1;
+  const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
+  const pageStart = safePage * itemsPerPage;
+  const pageEnd = Math.min(pageStart + itemsPerPage, displayedItems.length);
+  const previewItems = previewMode ? displayedItems.slice(pageStart, pageEnd) : displayedItems;
   const textScale = previewMode && pageScale > 0 ? Math.min(2, 1 / pageScale) : 1;
 
   function handleTogglePreview() {
@@ -361,6 +377,35 @@ export default function ListPage({ params }: Props) {
           </button>
 
           <div className="flex items-center gap-2">
+            {/* Items-per-page stepper — only shown in preview mode */}
+            {previewMode && (
+              <div
+                className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
+                style={{
+                  borderColor: "hsl(var(--border))",
+                  backgroundColor: "hsl(var(--muted))",
+                  color: "hsl(var(--foreground))",
+                }}
+              >
+                <button
+                  onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
+                  disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
+                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                  aria-label="Fewer items per page"
+                >
+                  −
+                </button>
+                <span className="px-1 tabular-nums">{itemsPerPage}</span>
+                <button
+                  onClick={() => setItemsPerPage((n) => Math.min(MAX_ITEMS_PER_PAGE, n + 1))}
+                  disabled={itemsPerPage >= MAX_ITEMS_PER_PAGE}
+                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                  aria-label="More items per page"
+                >
+                  +
+                </button>
+              </div>
+            )}
 
             {/* Camera / remove-photo button — only shown in preview mode */}
             {previewMode && (
@@ -642,7 +687,7 @@ export default function ListPage({ params }: Props) {
                 <ItemRow
                   key={item.id}
                   item={item}
-                  rank={index + 1}
+                  rank={pageStart + index + 1}
                   onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
                   onRename={(name) => renameItem(id, item.id, name)}
                   onDelete={() => deleteItem(id, item.id)}
@@ -738,6 +783,45 @@ export default function ListPage({ params }: Props) {
         </div>
       )}
 
+
+      {/* Page navigation — fixed at bottom center */}
+      {previewMode && totalPages > 1 && (
+        <div className="fixed bottom-6 left-0 right-0 flex items-center justify-center gap-3 z-50 pointer-events-none">
+          <button
+            onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+            disabled={safePage === 0}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25 pointer-events-auto"
+            style={{ backgroundColor: "hsl(var(--muted))", color: "hsl(var(--foreground))" }}
+            aria-label="Previous page"
+          >‹</button>
+
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPreviewPage(i)}
+                aria-label={`Page ${i + 1}`}
+                className="rounded-full transition-all"
+                style={{
+                  width: i === safePage ? 20 : 8,
+                  height: 8,
+                  backgroundColor: i === safePage
+                    ? "hsl(var(--primary))"
+                    : "hsl(var(--muted-foreground) / 35%)",
+                }}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => setPreviewPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={safePage === totalPages - 1}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25 pointer-events-auto"
+            style={{ backgroundColor: "hsl(var(--muted))", color: "hsl(var(--foreground))" }}
+            aria-label="Next page"
+          >›</button>
+        </div>
+      )}
 
       <NewItemDialog
         open={open}
