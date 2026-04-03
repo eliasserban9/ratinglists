@@ -22,7 +22,7 @@ function sortLabel(mode: SortMode) {
 }
 
 const MIN_ITEMS_PER_PAGE = 3;
-const MAX_ITEMS_PER_PAGE = 15;
+const MAX_ITEMS_PER_PAGE = 10;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -111,9 +111,9 @@ export default function ListPage({ params }: Props) {
 
     const naturalHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
-    // Always reserve space for the nav bar (fixed bottom-6=24px + h-9=36px + safe margin)
+    // Reserve space for the nav bar (bottom-6=24px + h-9=36px + iOS safe area ~34px + margin)
     const willHavePagination = itemCount > itemsPerPage;
-    const bottomReserve = willHavePagination ? 80 : 28;
+    const bottomReserve = willHavePagination ? 104 : 32;
     const availableHeight = window.innerHeight - rect.top - bottomReserve;
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
