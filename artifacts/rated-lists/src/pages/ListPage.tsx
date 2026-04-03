@@ -698,7 +698,6 @@ export default function ListPage({ params }: Props) {
                     isFirst={index === 0}
                     isLast={index === previewItems.length - 1}
                     hideDelete={previewMode}
-                    textScale={previewMode ? 1.4 : 1}
                   />
                 ))}
               </div>
