@@ -88,11 +88,10 @@ export default function ListPage({ params }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Recompute preview scale to fit the current page's items on screen without scrolling.
+  // Recompute preview scale so the current page always fills the space above the nav bar.
   useLayoutEffect(() => {
     const itemCount = list?.items.length ?? 0;
     const previewModeChanged = prevPreviewModeRef.current !== previewMode;
-    const ippChanged = prevItemsPerPageRef.current !== itemsPerPage;
 
     prevPreviewModeRef.current = previewMode;
     prevItemCountRef.current = itemCount;
@@ -106,22 +105,21 @@ export default function ListPage({ params }: Props) {
       return;
     }
 
-    if (!previewModeChanged && !ippChanged && prevItemCountRef.current === itemCount) return;
     if (!measureRef.current || !itemsRef.current) return;
 
     setPreviewPage(0);
 
     const naturalHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
-    // Reserve space for the page-nav bar (fixed bottom-6 + h-9 ≈ 60px) plus a safe margin
+    // Always reserve space for the nav bar (fixed bottom-6=24px + h-9=36px + safe margin)
     const willHavePagination = itemCount > itemsPerPage;
-    const bottomReserve = willHavePagination ? 72 : 24;
+    const bottomReserve = willHavePagination ? 80 : 28;
     const availableHeight = window.innerHeight - rect.top - bottomReserve;
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
-    // measureRef already contains exactly the current page's items at 1x scale
-    const scale = Math.min(1, availableHeight / naturalHeight);
+    // Scale so items always fill exactly the available height (shrink or grow as needed)
+    const scale = Math.min(1.5, availableHeight / naturalHeight);
     setPageScale(scale);
   }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
 
