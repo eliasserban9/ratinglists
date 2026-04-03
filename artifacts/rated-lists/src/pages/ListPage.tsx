@@ -22,7 +22,8 @@ function sortLabel(mode: SortMode) {
 }
 
 const MIN_ITEMS_PER_PAGE = 3;
-const MAX_ITEMS_PER_PAGE = 11;
+const MAX_ITEMS_PER_PAGE_DEFAULT = 11;
+const MAX_ITEMS_PER_PAGE_PHOTO = 9;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -82,6 +83,13 @@ export default function ListPage({ params }: Props) {
   useEffect(() => {
     if (editingNote) setTimeout(() => noteRef.current?.focus(), 30);
   }, [editingNote]);
+
+  // When a cover photo is added, cap items-per-page at the photo limit
+  useEffect(() => {
+    if (list?.coverPhoto && itemsPerPage > MAX_ITEMS_PER_PAGE_PHOTO) {
+      setItemsPerPage(MAX_ITEMS_PER_PAGE_PHOTO);
+    }
+  }, [list?.coverPhoto]);
 
   useEffect(() => {
     function onScroll() {
@@ -222,7 +230,7 @@ export default function ListPage({ params }: Props) {
     }
   }
 
-  function cropToSquare(file: File): Promise<string> {
+  function cropToSquareCanvas(file: File): Promise<HTMLCanvasElement> {
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -234,17 +242,81 @@ export default function ListPage({ params }: Props) {
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
+        resolve(canvas);
       };
       img.src = url;
     });
   }
 
+  function extractDominantColor(canvas: HTMLCanvasElement): { hue: number; lightness: number } {
+    const ctx = canvas.getContext("2d")!;
+    const { width, height } = canvas;
+    const step = Math.max(1, Math.floor(Math.min(width, height) / 40));
+    const NUM_BUCKETS = 36;
+    const bucketCounts = new Array(NUM_BUCKETS).fill(0);
+    const bucketLightness: number[][] = Array.from({ length: NUM_BUCKETS }, () => []);
+    let greyCount = 0;
+    let greyLSum = 0;
+    let totalSampled = 0;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const pixels = imageData.data;
+
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const i = (y * width + x) * 4;
+        const r = pixels[i] / 255;
+        const g = pixels[i + 1] / 255;
+        const b = pixels[i + 2] / 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+        const s = max === min ? 0 : l > 0.5 ? (max - min) / (2 - max - min) : (max - min) / (max + min);
+        let h = 0;
+        if (max !== min) {
+          if (max === r) h = (g - b) / (max - min) + (g < b ? 6 : 0);
+          else if (max === g) h = (b - r) / (max - min) + 2;
+          else h = (r - g) / (max - min) + 4;
+          h = h * 60;
+        }
+        totalSampled++;
+        if (s < 0.15) {
+          greyCount++;
+          greyLSum += l * 100;
+        } else {
+          const bucket = Math.floor(h / (360 / NUM_BUCKETS)) % NUM_BUCKETS;
+          bucketCounts[bucket]++;
+          bucketLightness[bucket].push(l * 100);
+        }
+      }
+    }
+
+    if (greyCount / totalSampled > 0.55) {
+      const avgGreyL = greyCount > 0 ? greyLSum / greyCount : 50;
+      return { hue: 380, lightness: Math.round(avgGreyL) };
+    }
+
+    const smoothed = bucketCounts.map((_, i) => {
+      const prev = bucketCounts[(i - 1 + NUM_BUCKETS) % NUM_BUCKETS];
+      const next = bucketCounts[(i + 1) % NUM_BUCKETS];
+      return prev + bucketCounts[i] * 2 + next;
+    });
+    const maxBucket = smoothed.indexOf(Math.max(...smoothed));
+    const degPerBucket = 360 / NUM_BUCKETS;
+    const domHue = Math.round(maxBucket * degPerBucket + degPerBucket / 2) % 360;
+    const lArr = bucketLightness[maxBucket];
+    const domL = lArr.length > 0 ? lArr.reduce((a, b) => a + b, 0) / lArr.length : 50;
+    return { hue: domHue, lightness: Math.round(domL) };
+  }
+
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const dataUrl = await cropToSquare(file);
+    const canvas = await cropToSquareCanvas(file);
+    const { hue, lightness } = extractDominantColor(canvas);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
     setListCoverPhoto(id, dataUrl);
+    setListBgColor(id, hue);
+    setListBgLightness(id, lightness);
     e.target.value = "";
   }
 
@@ -302,34 +374,37 @@ export default function ListPage({ params }: Props) {
 
           <div className="flex items-center gap-2">
             {/* Items-per-page stepper — only shown in preview mode */}
-            {previewMode && (
-              <div
-                className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
-                style={{
-                  borderColor: "hsl(var(--border))",
-                  backgroundColor: "hsl(var(--muted))",
-                  color: "hsl(var(--foreground))",
-                }}
-              >
-                <button
-                  onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
-                  disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
-                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
-                  aria-label="Fewer items per page"
+            {previewMode && (() => {
+              const maxIPP = list.coverPhoto ? MAX_ITEMS_PER_PAGE_PHOTO : MAX_ITEMS_PER_PAGE_DEFAULT;
+              return (
+                <div
+                  className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
+                  style={{
+                    borderColor: "hsl(var(--border))",
+                    backgroundColor: "hsl(var(--muted))",
+                    color: "hsl(var(--foreground))",
+                  }}
                 >
-                  −
-                </button>
-                <span className="px-1 tabular-nums">{itemsPerPage}</span>
-                <button
-                  onClick={() => setItemsPerPage((n) => Math.min(MAX_ITEMS_PER_PAGE, n + 1))}
-                  disabled={itemsPerPage >= MAX_ITEMS_PER_PAGE}
-                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
-                  aria-label="More items per page"
-                >
-                  +
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
+                    disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
+                    className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                    aria-label="Fewer items per page"
+                  >
+                    −
+                  </button>
+                  <span className="px-1 tabular-nums">{itemsPerPage}</span>
+                  <button
+                    onClick={() => setItemsPerPage((n) => Math.min(maxIPP, n + 1))}
+                    disabled={itemsPerPage >= maxIPP}
+                    className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                    aria-label="More items per page"
+                  >
+                    +
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* Camera / gallery button — only shown in preview mode */}
             {previewMode && (
