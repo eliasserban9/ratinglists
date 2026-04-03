@@ -29,7 +29,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListBgLightness,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListBgLightness, setListCoverPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -65,6 +65,7 @@ export default function ListPage({ params }: Props) {
   const descRef = useRef<HTMLTextAreaElement>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const list = getList(id);
 
@@ -221,6 +222,32 @@ export default function ListPage({ params }: Props) {
     }
   }
 
+  function cropToSquare(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const size = Math.min(img.width, img.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = url;
+    });
+  }
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await cropToSquare(file);
+    setListCoverPhoto(id, dataUrl);
+    e.target.value = "";
+  }
+
   // Compute list custom background from stored hue + lightness
   const isDark = document.documentElement.classList.contains("dark");
   const defaultLightness = isDark ? 13 : 78;
@@ -304,6 +331,22 @@ export default function ListPage({ params }: Props) {
               </div>
             )}
 
+            {/* Camera / gallery button — only shown in preview mode */}
+            {previewMode && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-8 h-8 flex items-center justify-center rounded-full border text-base transition-colors hover:opacity-70"
+                style={{
+                  backgroundColor: "hsl(var(--muted))",
+                  borderColor: "hsl(var(--border))",
+                  color: "hsl(var(--foreground))",
+                }}
+                aria-label="Upload cover photo"
+              >
+                📷
+              </button>
+            )}
+
             <button
               onClick={handleTogglePreview}
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
@@ -314,7 +357,7 @@ export default function ListPage({ params }: Props) {
               }
               aria-label="Toggle preview mode"
             >
-              <span>📷</span>
+              <span>{previewMode ? "✕" : "▶"}</span>
               <span>{previewMode ? "Exit Preview" : "Preview"}</span>
             </button>
 
@@ -448,66 +491,88 @@ export default function ListPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Title row */}
-        <div className="flex items-center justify-between gap-3 mb-1">
-          {editingTitle ? (
-            <input
-              ref={titleInputRef}
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              onBlur={commitTitleEdit}
-              onKeyDown={handleTitleKey}
-              className="flex-1 text-3xl font-bold bg-transparent border-b-2 outline-none text-foreground"
-              style={{ borderColor: "hsl(var(--primary))" }}
-              maxLength={60}
-            />
-          ) : (
-            <h1
-              className="text-3xl font-bold text-foreground truncate cursor-pointer hover:opacity-75 transition-opacity"
-              onClick={startTitleEdit}
-              title={previewMode ? undefined : "Tap to rename"}
-            >
+        {previewMode ? (
+          /* Preview mode: title + avg badge centered and inline */
+          <div className="flex items-baseline justify-center gap-3 mb-2 flex-wrap">
+            <h1 className="text-3xl font-bold text-foreground text-center">
               {list.title}
             </h1>
-          )}
-
-          {!previewMode && (
-            <div className="relative shrink-0">
-              <select
-                value={currentSortMode}
-                onChange={(e) => setSortMode(id, e.target.value as SortMode)}
-                className="appearance-none text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 border cursor-pointer outline-none"
-                style={{
-                  backgroundColor: "hsl(var(--muted))",
-                  color: "hsl(var(--foreground))",
-                  borderColor: "hsl(var(--border))",
-                }}
+            {avgColors && avg !== null && (
+              <div
+                className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl shrink-0"
+                style={{ backgroundColor: avgColors.bg }}
               >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <span
-                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >▾</span>
-            </div>
-          )}
-        </div>
-
-        {/* Average rating badge */}
-        {avgColors && avg !== null && (
-          <div
-            className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl mb-2"
-            style={{ backgroundColor: avgColors.bg }}
-          >
-            <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
-              {fmt(avg)}
-            </span>
-            <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
-              avg
-            </span>
+                <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
+                  {fmt(avg)}
+                </span>
+                <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
+                  avg
+                </span>
+              </div>
+            )}
           </div>
+        ) : (
+          <>
+            {/* Title row */}
+            <div className="flex items-center justify-between gap-3 mb-1">
+              {editingTitle ? (
+                <input
+                  ref={titleInputRef}
+                  value={titleValue}
+                  onChange={(e) => setTitleValue(e.target.value)}
+                  onBlur={commitTitleEdit}
+                  onKeyDown={handleTitleKey}
+                  className="flex-1 text-3xl font-bold bg-transparent border-b-2 outline-none text-foreground"
+                  style={{ borderColor: "hsl(var(--primary))" }}
+                  maxLength={60}
+                />
+              ) : (
+                <h1
+                  className="text-3xl font-bold text-foreground truncate cursor-pointer hover:opacity-75 transition-opacity"
+                  onClick={startTitleEdit}
+                  title="Tap to rename"
+                >
+                  {list.title}
+                </h1>
+              )}
+
+              <div className="relative shrink-0">
+                <select
+                  value={currentSortMode}
+                  onChange={(e) => setSortMode(id, e.target.value as SortMode)}
+                  className="appearance-none text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 border cursor-pointer outline-none"
+                  style={{
+                    backgroundColor: "hsl(var(--muted))",
+                    color: "hsl(var(--foreground))",
+                    borderColor: "hsl(var(--border))",
+                  }}
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <span
+                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
+                >▾</span>
+              </div>
+            </div>
+
+            {/* Average rating badge */}
+            {avgColors && avg !== null && (
+              <div
+                className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl mb-2"
+                style={{ backgroundColor: avgColors.bg }}
+              >
+                <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
+                  {fmt(avg)}
+                </span>
+                <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
+                  avg
+                </span>
+              </div>
+            )}
+          </>
         )}
 
         {/* Description — hidden in preview mode */}
@@ -543,7 +608,38 @@ export default function ListPage({ params }: Props) {
           </p>
         )}
 
-        {previewMode && <div className="mb-2" />}
+        {/* Hidden file input for gallery photo picker */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoChange}
+        />
+
+        {/* Cover photo — shown in preview mode between header and items */}
+        {previewMode && list.coverPhoto && (
+          <div className="flex justify-center mb-3">
+            <div className="relative group">
+              <img
+                src={list.coverPhoto}
+                alt="Cover"
+                className="rounded-2xl object-cover"
+                style={{ width: 220, height: 220 }}
+              />
+              <button
+                onClick={() => setListCoverPhoto(id, null)}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ backgroundColor: "rgba(0,0,0,0.55)", color: "#fff" }}
+                aria-label="Remove photo"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {previewMode && !list.coverPhoto && <div className="mb-2" />}
 
         {displayedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">

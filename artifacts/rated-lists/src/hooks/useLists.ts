@@ -15,6 +15,7 @@ export interface RatedList {
   note?: string;
   bgHue?: number;
   bgLightness?: number;
+  coverPhoto?: string;
   items: ListItem[];
   createdAt: number;
   updatedAt: number;
@@ -447,6 +448,18 @@ export function useLists() {
     [data, persist]
   );
 
+  const setListCoverPhoto = useCallback(
+    (listId: string, dataUrl: string | null) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === listId ? { ...l, coverPhoto: dataUrl ?? undefined } : l
+        ),
+      });
+    },
+    [data, persist]
+  );
+
   const setCategorySortMode = useCallback(
     (categoryId: string, sortMode: SortMode) => {
       persist({
@@ -532,6 +545,7 @@ export function useLists() {
     setListNote,
     setListBgColor,
     setListBgLightness,
+    setListCoverPhoto,
     createCategory,
     deleteCategory,
     restoreFromTrash,
