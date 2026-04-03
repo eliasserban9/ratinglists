@@ -30,7 +30,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, applyListPhoto, removeListPhoto,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, applyListPhoto, removeListPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -168,9 +168,6 @@ export default function ListPage({ params }: Props) {
     : displayedItems;
 
   function handleTogglePreview() {
-    if (previewMode) {
-      setListBgColor(id, null);
-    }
     setPreviewMode((v) => !v);
   }
 
@@ -375,7 +372,7 @@ export default function ListPage({ params }: Props) {
       className="min-h-screen"
       style={previewMode
         ? { overflow: "hidden", ...(listBg ? { backgroundColor: listBg } : {}), ...textVars }
-        : { paddingBottom: "6rem", ...(listBg ? { backgroundColor: listBg } : {}), ...textVars }}
+        : { paddingBottom: "6rem" }}
     >
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 
