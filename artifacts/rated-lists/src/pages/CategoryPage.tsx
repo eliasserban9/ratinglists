@@ -91,7 +91,7 @@ export default function CategoryPage({ params }: Props) {
           className="flex items-center gap-1 text-primary text-sm mb-6 hover:opacity-70 transition-opacity"
         >
           <span className="text-lg leading-none">‹</span>
-          <span>Rating Lists</span>
+          <span>Ratings</span>
         </button>
 
         <div className="flex items-center justify-between gap-3 mb-1">
