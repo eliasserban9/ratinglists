@@ -67,7 +67,7 @@ export function ratingColors(rating: number): ItemColors {
   const hsla = (l: number, a: number) => `hsla(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l}%, ${a})`;
   return {
     bg:           hsl(18),
-    borderColor:  hsl(38),
+    borderColor:  hsl(10),
     rankColor:    hsla(78, 0.6),
     nameColor:    hsl(93),
     ratingColor:  hsl(72),
