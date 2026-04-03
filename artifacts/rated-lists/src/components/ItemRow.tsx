@@ -16,13 +16,14 @@ interface Props {
   isFirst?: boolean;
   isLast?: boolean;
   scale?: number;
+  textScale?: number;
   hideDelete?: boolean;
 }
 
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,
-  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, hideDelete = false,
+  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, textScale = 1, hideDelete = false,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -128,7 +129,7 @@ export function ItemRow({
 
         <div className="flex items-center gap-3 flex-1 px-3 py-3 min-w-0">
           {rank !== undefined && (
-            <span className="text-xs w-5 text-center font-mono shrink-0" style={{ color: s.rankColor }}>
+            <span className="w-5 text-center font-mono shrink-0" style={{ color: s.rankColor, fontSize: `${0.75 * textScale}rem` }}>
               {rank}
             </span>
           )}
@@ -141,15 +142,15 @@ export function ItemRow({
               onChange={(e) => setRenameValue(e.target.value)}
               onBlur={commitRename}
               onKeyDown={handleRenameKey}
-              className="flex-1 bg-transparent border-b outline-none text-sm font-medium min-w-0"
-              style={{ borderColor: s.ratingColor, color: s.nameColor }}
+              className="flex-1 bg-transparent border-b outline-none font-medium min-w-0"
+              style={{ borderColor: s.ratingColor, color: s.nameColor, fontSize: `${0.875 * textScale}rem` }}
               maxLength={80}
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <span
-              className="flex-1 text-sm font-medium truncate min-w-0 cursor-pointer"
-              style={{ color: s.nameColor }}
+              className="flex-1 font-medium truncate min-w-0 cursor-pointer"
+              style={{ color: s.nameColor, fontSize: `${0.875 * textScale}rem` }}
               onClick={onRename ? startRename : undefined}
               title={onRename ? "Tap to rename" : undefined}
             >
@@ -160,8 +161,8 @@ export function ItemRow({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={openPicker}
-              className="text-sm font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80"
-              style={{ color: s.ratingColor }}
+              className="font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80"
+              style={{ color: s.ratingColor, fontSize: `${0.875 * textScale}rem` }}
               aria-label="Change rating"
             >
               {fmt(item.rating)}/10

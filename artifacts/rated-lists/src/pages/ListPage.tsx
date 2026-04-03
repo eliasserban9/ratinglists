@@ -21,10 +21,7 @@ function sortLabel(mode: SortMode) {
   return "custom order";
 }
 
-const MIN_ITEMS_PER_PAGE = 3;
-const MAX_ITEMS_PER_PAGE_DEFAULT = 11;
-const MAX_ITEMS_PER_PAGE_PHOTO = 9;
-const MIN_PREVIEW_SCALE = 0.8;
+const MAX_PREVIEW_ITEMS = 15;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -45,11 +42,7 @@ export default function ListPage({ params }: Props) {
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
   const [pageScale, setPageScale] = useState(1);
-  const [previewPage, setPreviewPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [effectivePreviewIPP, setEffectivePreviewIPP] = useState(10);
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
-  const prevItemsPerPageRef = useRef(10);
 
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -81,12 +74,6 @@ export default function ListPage({ params }: Props) {
     if (editingNote) setTimeout(() => noteRef.current?.focus(), 30);
   }, [editingNote]);
 
-  // When a cover photo is added, cap items-per-page at the photo limit
-  useEffect(() => {
-    if (list?.coverPhoto && itemsPerPage > MAX_ITEMS_PER_PAGE_PHOTO) {
-      setItemsPerPage(MAX_ITEMS_PER_PAGE_PHOTO);
-    }
-  }, [list?.coverPhoto]);
 
   useEffect(() => {
     function onScroll() {
@@ -97,27 +84,20 @@ export default function ListPage({ params }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Recompute preview scale whenever mode, item count, items-per-page, or note changes.
+  // Recompute preview scale to fit all visible items (up to MAX_PREVIEW_ITEMS) on screen.
   useLayoutEffect(() => {
     const itemCount = list?.items.length ?? 0;
     const previewModeChanged = prevPreviewModeRef.current !== previewMode;
 
     prevPreviewModeRef.current = previewMode;
     prevItemCountRef.current = itemCount;
-    prevItemsPerPageRef.current = itemsPerPage;
 
     if (!previewMode) {
-      if (previewModeChanged) {
-        setPageScale(1);
-        setPreviewPage(0);
-        setEffectivePreviewIPP(itemsPerPage);
-      }
+      if (previewModeChanged) setPageScale(1);
       return;
     }
 
     if (!measureRef.current || !itemsRef.current) return;
-
-    setPreviewPage(0);
 
     const naturalHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
@@ -125,22 +105,12 @@ export default function ListPage({ params }: Props) {
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
+    const visibleCount = Math.min(itemCount, MAX_PREVIEW_ITEMS);
     const perItemHeight = naturalHeight / itemCount;
-
-    // Find the largest IPP that keeps scale >= MIN_PREVIEW_SCALE
-    let bestIPP = itemsPerPage;
-    while (bestIPP > MIN_ITEMS_PER_PAGE) {
-      const refItems = Math.min(bestIPP, itemCount);
-      const s = availableHeight / (perItemHeight * refItems);
-      if (s >= MIN_PREVIEW_SCALE) break;
-      bestIPP--;
-    }
-
-    const referenceItems = Math.min(bestIPP, itemCount);
-    const scale = Math.min(1, availableHeight / (perItemHeight * referenceItems));
-    setEffectivePreviewIPP(bestIPP);
+    const referenceHeight = perItemHeight * visibleCount;
+    const scale = Math.min(1, availableHeight / referenceHeight);
     setPageScale(scale);
-  }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
+  }, [previewMode, list?.items.length, list?.note]);
 
   if (!list) {
     return (
@@ -168,15 +138,9 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Pagination derived values — use effectivePreviewIPP in preview (auto-reduced to keep min scale)
-  const activeIPP = previewMode ? effectivePreviewIPP : itemsPerPage;
-  const totalPages = previewMode ? Math.ceil(displayedItems.length / activeIPP) : 1;
-  const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
-  const pageStart = safePage * activeIPP;
-  const pageEnd = Math.min(pageStart + activeIPP, displayedItems.length);
-  const currentPageItems = previewMode
-    ? displayedItems.slice(pageStart, pageEnd)
-    : displayedItems;
+  // In preview: show up to MAX_PREVIEW_ITEMS, always on one screen (no pagination)
+  const previewItems = previewMode ? displayedItems.slice(0, MAX_PREVIEW_ITEMS) : displayedItems;
+  const textScale = previewMode && pageScale > 0 ? Math.min(2, 1 / pageScale) : 1;
 
   function handleTogglePreview() {
     setPreviewMode((v) => !v);
@@ -397,38 +361,6 @@ export default function ListPage({ params }: Props) {
           </button>
 
           <div className="flex items-center gap-2">
-            {/* Items-per-page stepper — only shown in preview mode */}
-            {previewMode && (() => {
-              const maxIPP = list.coverPhoto ? MAX_ITEMS_PER_PAGE_PHOTO : MAX_ITEMS_PER_PAGE_DEFAULT;
-              return (
-                <div
-                  className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
-                  style={{
-                    borderColor: "hsl(var(--border))",
-                    backgroundColor: "hsl(var(--muted))",
-                    color: "hsl(var(--foreground))",
-                  }}
-                >
-                  <button
-                    onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
-                    disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
-                    className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
-                    aria-label="Fewer items per page"
-                  >
-                    −
-                  </button>
-                  <span className="px-1 tabular-nums">{itemsPerPage}</span>
-                  <button
-                    onClick={() => setItemsPerPage((n) => Math.min(maxIPP, n + 1))}
-                    disabled={itemsPerPage >= maxIPP}
-                    className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
-                    aria-label="More items per page"
-                  >
-                    +
-                  </button>
-                </div>
-              );
-            })()}
 
             {/* Camera / remove-photo button — only shown in preview mode */}
             {previewMode && (
@@ -679,7 +611,7 @@ export default function ListPage({ params }: Props) {
           </div>
         ) : (
           <>
-            {/* Off-screen measurement div — always has ALL items at natural scale */}
+            {/* Off-screen measurement div — has up to MAX_PREVIEW_ITEMS at natural scale */}
             {previewMode && (
               <div
                 ref={measureRef}
@@ -687,7 +619,7 @@ export default function ListPage({ params }: Props) {
                 style={{ position: "absolute", top: -9999, left: 0, right: 0, visibility: "hidden", pointerEvents: "none" }}
                 aria-hidden="true"
               >
-                {displayedItems.map((item, index) => (
+                {previewItems.map((item, index) => (
                   <ItemRow
                     key={`measure-${item.id}`}
                     item={item}
@@ -706,11 +638,11 @@ export default function ListPage({ params }: Props) {
               className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
               style={previewMode ? { zoom: `${pageScale * 100}%` } : undefined}
             >
-              {currentPageItems.map((item, index) => (
+              {previewItems.map((item, index) => (
                 <ItemRow
                   key={item.id}
                   item={item}
-                  rank={pageStart + index + 1}
+                  rank={index + 1}
                   onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
                   onRename={(name) => renameItem(id, item.id, name)}
                   onDelete={() => deleteItem(id, item.id)}
@@ -718,7 +650,8 @@ export default function ListPage({ params }: Props) {
                   onMoveUp={() => moveItem(id, item.id, "up")}
                   onMoveDown={() => moveItem(id, item.id, "down")}
                   isFirst={index === 0}
-                  isLast={index === currentPageItems.length - 1}
+                  isLast={index === previewItems.length - 1}
+                  textScale={previewMode ? textScale : 1}
                   hideDelete={previewMode}
                 />
               ))}
@@ -805,55 +738,6 @@ export default function ListPage({ params }: Props) {
         </div>
       )}
 
-      {/* Page navigation — fixed at bottom center so it never shifts with item count */}
-      {previewMode && totalPages > 1 && (
-        <div className="fixed bottom-6 left-0 right-0 flex items-center justify-center gap-3 z-50 pointer-events-none">
-          <button
-            onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
-            disabled={safePage === 0}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25 pointer-events-auto"
-            style={{
-              backgroundColor: "hsl(var(--muted))",
-              color: "hsl(var(--foreground))",
-            }}
-            aria-label="Previous page"
-          >
-            ‹
-          </button>
-
-          <div className="flex items-center gap-1.5 pointer-events-auto">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPreviewPage(i)}
-                aria-label={`Page ${i + 1}`}
-                className="rounded-full transition-all"
-                style={{
-                  width: i === safePage ? 20 : 8,
-                  height: 8,
-                  backgroundColor:
-                    i === safePage
-                      ? "hsl(var(--primary))"
-                      : "hsl(var(--muted-foreground) / 35%)",
-                }}
-              />
-            ))}
-          </div>
-
-          <button
-            onClick={() => setPreviewPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={safePage === totalPages - 1}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-25 pointer-events-auto"
-            style={{
-              backgroundColor: "hsl(var(--muted))",
-              color: "hsl(var(--foreground))",
-            }}
-            aria-label="Next page"
-          >
-            ›
-          </button>
-        </div>
-      )}
 
       <NewItemDialog
         open={open}
