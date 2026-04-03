@@ -43,6 +43,7 @@ export default function ListPage({ params }: Props) {
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
   const [pageScale, setPageScale] = useState(1);
+  const [naturalHeight, setNaturalHeight] = useState(0);
   const [previewPage, setPreviewPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
@@ -109,17 +110,18 @@ export default function ListPage({ params }: Props) {
 
     setPreviewPage(0);
 
-    const naturalHeight = measureRef.current.scrollHeight;
+    const measuredHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
     // Reserve space for the nav bar (bottom-6=24px + h-9=36px + iOS safe area ~34px + margin)
     const willHavePagination = itemCount > itemsPerPage;
     const bottomReserve = willHavePagination ? 104 : 32;
     const availableHeight = window.innerHeight - rect.top - bottomReserve;
 
-    if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
+    if (measuredHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
     // Scale so items always fill exactly the available height (shrink or grow as needed)
-    const scale = Math.min(1.5, availableHeight / naturalHeight);
+    const scale = Math.min(1.5, availableHeight / measuredHeight);
+    setNaturalHeight(measuredHeight);
     setPageScale(scale);
   }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
 
@@ -155,7 +157,6 @@ export default function ListPage({ params }: Props) {
   const pageStart = safePage * itemsPerPage;
   const pageEnd = Math.min(pageStart + itemsPerPage, displayedItems.length);
   const previewItems = previewMode ? displayedItems.slice(pageStart, pageEnd) : displayedItems;
-  const textScale = previewMode && pageScale > 0 ? Math.min(2, 1 / pageScale) : 1;
 
   function handleTogglePreview() {
     setPreviewMode((v) => !v);
@@ -676,29 +677,30 @@ export default function ListPage({ params }: Props) {
               </div>
             )}
 
-            {/* Visible items area */}
-            <div
-              ref={itemsRef}
-              className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
-              style={previewMode ? { zoom: `${pageScale * 100}%` } : undefined}
-            >
-              {previewItems.map((item, index) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  rank={pageStart + index + 1}
-                  onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
-                  onRename={(name) => renameItem(id, item.id, name)}
-                  onDelete={() => deleteItem(id, item.id)}
-                  showMoveBar={!previewMode && currentSortMode === "added"}
-                  onMoveUp={() => moveItem(id, item.id, "up")}
-                  onMoveDown={() => moveItem(id, item.id, "down")}
-                  isFirst={index === 0}
-                  isLast={index === previewItems.length - 1}
-                  textScale={previewMode ? textScale : 1}
-                  hideDelete={previewMode}
-                />
-              ))}
+            {/* Visible items area — use transform:scale for consistent cross-platform scaling */}
+            <div style={previewMode && naturalHeight > 0 ? { height: naturalHeight * pageScale, overflow: "hidden" } : undefined}>
+              <div
+                ref={itemsRef}
+                className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
+                style={previewMode ? { transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" } : undefined}
+              >
+                {previewItems.map((item, index) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    rank={pageStart + index + 1}
+                    onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
+                    onRename={(name) => renameItem(id, item.id, name)}
+                    onDelete={() => deleteItem(id, item.id)}
+                    showMoveBar={!previewMode && currentSortMode === "added"}
+                    onMoveUp={() => moveItem(id, item.id, "up")}
+                    onMoveDown={() => moveItem(id, item.id, "down")}
+                    isFirst={index === 0}
+                    isLast={index === previewItems.length - 1}
+                    hideDelete={previewMode}
+                  />
+                ))}
+              </div>
             </div>
 
           </>
