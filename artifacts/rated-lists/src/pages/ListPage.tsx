@@ -30,7 +30,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListBgLightness, setListCoverPhoto, applyListPhoto,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListCoverPhoto, applyListPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -49,12 +49,7 @@ export default function ListPage({ params }: Props) {
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
   const prevItemsPerPageRef = useRef(10);
 
-  // Options panel
-  const [showOptions, setShowOptions] = useState(false);
-  const colorStripRef = useRef<HTMLDivElement>(null);
-  const isDraggingStrip = useRef(false);
-  const lightnessStripRef = useRef<HTMLDivElement>(null);
-  const isDraggingLightness = useRef(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   // Refs for measurement
   const measureRef = useRef<HTMLDivElement>(null);
@@ -173,6 +168,9 @@ export default function ListPage({ params }: Props) {
     : displayedItems;
 
   function handleTogglePreview() {
+    if (previewMode) {
+      setListBgColor(id, null);
+    }
     setPreviewMode((v) => !v);
   }
 
@@ -231,18 +229,32 @@ export default function ListPage({ params }: Props) {
   }
 
   function cropToSquareCanvas(file: File): Promise<HTMLCanvasElement> {
-    return new Promise((resolve) => {
+    const MAX_PX = 900;
+    return new Promise((resolve, reject) => {
+      if (file.size > 25 * 1024 * 1024) {
+        reject(new Error("Photo file size is too large. Please choose a smaller image."));
+        return;
+      }
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
-        const size = Math.min(img.width, img.height);
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
         URL.revokeObjectURL(url);
+        const cropSize = Math.min(img.width, img.height);
+        const outSize = Math.min(MAX_PX, cropSize);
+        const canvas = document.createElement("canvas");
+        canvas.width = outSize;
+        canvas.height = outSize;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(
+          img,
+          (img.width - cropSize) / 2, (img.height - cropSize) / 2, cropSize, cropSize,
+          0, 0, outSize, outSize,
+        );
         resolve(canvas);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Could not read this photo. It may be too large or in an unsupported format."));
       };
       img.src = url;
     });
@@ -308,10 +320,16 @@ export default function ListPage({ params }: Props) {
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const canvas = await cropToSquareCanvas(file);
-    const { hue, lightness } = extractDominantColor(canvas);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    applyListPhoto(id, dataUrl, hue, Math.min(93, lightness + 5));
+    setPhotoError(null);
+    try {
+      const canvas = await cropToSquareCanvas(file);
+      const { hue, lightness } = extractDominantColor(canvas);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      applyListPhoto(id, dataUrl, hue, Math.min(93, lightness + 5));
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "Failed to upload photo.");
+      setTimeout(() => setPhotoError(null), 4000);
+    }
     e.target.value = "";
   }
 
@@ -334,19 +352,6 @@ export default function ListPage({ params }: Props) {
       : ({ '--foreground': '210 40% 96%', '--muted-foreground': '215 20% 72%' } as React.CSSProperties)
     : {};
 
-  function hueFromPointer(e: React.PointerEvent<HTMLDivElement>) {
-    const rect = colorStripRef.current!.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    // 0–400: 0–360 = coloured hues, 361–400 = grey/black zone
-    return Math.round((x / rect.width) * 400);
-  }
-
-  function lightnessFromPointer(e: React.PointerEvent<HTMLDivElement>) {
-    const rect = lightnessStripRef.current!.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    // left = white (100%), right = black (0%)
-    return Math.round(100 - (x / rect.width) * 100);
-  }
 
   return (
     <div
@@ -431,135 +436,15 @@ export default function ListPage({ params }: Props) {
               <span>{previewMode ? "Exit Preview" : "Preview"}</span>
             </button>
 
-            {/* Options button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowOptions((v) => !v)}
-                className="w-8 h-8 rounded-full border flex items-center justify-center text-base font-bold transition-colors"
-                style={{
-                  backgroundColor: showOptions ? "hsl(var(--primary))" : "hsl(var(--muted))",
-                  color: showOptions ? "hsl(var(--primary-foreground))" : "hsl(var(--muted-foreground))",
-                  borderColor: showOptions ? "hsl(var(--primary))" : "hsl(var(--border))",
-                }}
-                aria-label="Options"
-              >
-                ⋯
-              </button>
-
-              {showOptions && (
-                <>
-                  {/* Backdrop to close */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowOptions(false)}
-                  />
-                  {/* Dropdown panel */}
-                  <div
-                    className="absolute right-0 top-10 z-50 w-64 rounded-2xl shadow-lg border p-4 flex flex-col gap-3"
-                    style={{
-                      backgroundColor: "hsl(var(--card))",
-                      borderColor: "hsl(var(--border))",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--muted-foreground))" }}>
-                      Background color
-                    </p>
-
-                    {/* Hue gradient strip */}
-                    <div
-                      ref={colorStripRef}
-                      className="relative h-7 rounded-full cursor-pointer select-none touch-none"
-                      style={{
-                        background: "linear-gradient(to right, hsl(0,65%,58%), hsl(30,65%,58%), hsl(60,65%,58%), hsl(90,65%,58%), hsl(120,65%,58%), hsl(150,65%,58%), hsl(180,65%,58%), hsl(210,65%,58%), hsl(240,65%,58%), hsl(270,65%,58%), hsl(300,65%,58%), hsl(330,65%,58%), hsl(360,65%,58%), #000000)",
-                      }}
-                      onPointerDown={(e) => {
-                        isDraggingStrip.current = true;
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                        setListBgColor(id, hueFromPointer(e));
-                      }}
-                      onPointerMove={(e) => {
-                        if (!isDraggingStrip.current) return;
-                        setListBgColor(id, hueFromPointer(e));
-                      }}
-                      onPointerUp={() => { isDraggingStrip.current = false; }}
-                    >
-                      {list.bgHue !== undefined && (
-                        <div
-                          className="absolute top-0.5 bottom-0.5 w-5 rounded-full border-2 border-white shadow"
-                          style={{
-                            left: `calc(${(list.bgHue / 400) * 100}% - 10px)`,
-                            backgroundColor: isGrey ? `hsl(0 0% 50%)` : `hsl(${list.bgHue} 65% 58%)`,
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Lightness strip — white (left) to black (right) */}
-                    {list.bgHue !== undefined && (
-                      <div
-                        ref={lightnessStripRef}
-                        className="relative h-7 rounded-full cursor-pointer select-none touch-none"
-                        style={{ background: "linear-gradient(to right, #ffffff, #000000)" }}
-                        onPointerDown={(e) => {
-                          isDraggingLightness.current = true;
-                          e.currentTarget.setPointerCapture(e.pointerId);
-                          setListBgLightness(id, lightnessFromPointer(e));
-                        }}
-                        onPointerMove={(e) => {
-                          if (!isDraggingLightness.current) return;
-                          setListBgLightness(id, lightnessFromPointer(e));
-                        }}
-                        onPointerUp={() => { isDraggingLightness.current = false; }}
-                      >
-                        <div
-                          className="absolute top-0.5 bottom-0.5 w-5 rounded-full border-2 border-white shadow"
-                          style={{
-                            left: `calc(${100 - bgLightness}% - 10px)`,
-                            backgroundColor: `hsl(0 0% ${bgLightness}%)`,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Current color preview + reset */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {list.bgHue !== undefined ? (
-                          <>
-                            <div
-                              className="w-5 h-5 rounded-full border"
-                              style={{
-                                backgroundColor: listBg,
-                                borderColor: "hsl(var(--border))",
-                              }}
-                            />
-                            <span className="text-xs" style={{ color: "hsl(var(--foreground))" }}>
-                              Hue {list.bgHue}°
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>
-                            No color set
-                          </span>
-                        )}
-                      </div>
-                      {list.bgHue !== undefined && (
-                        <button
-                          onClick={() => setListBgColor(id, null)}
-                          className="text-xs hover:opacity-70 transition-opacity"
-                          style={{ color: "hsl(var(--muted-foreground))" }}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
+
+        {/* Photo upload error toast */}
+        {photoError && (
+          <div className="mb-3 px-4 py-2.5 rounded-xl text-sm font-medium" style={{ backgroundColor: "rgba(239,68,68,0.18)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.35)" }}>
+            {photoError}
+          </div>
+        )}
 
         {previewMode ? (
           /* Preview mode: title + avg badge centered and inline */
