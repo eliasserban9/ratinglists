@@ -345,11 +345,28 @@ export default function ListPage({ params }: Props) {
       : `hsl(${list.bgHue} ${isDark ? 22 : 32}% ${bgLightness}%)`
     : undefined;
 
-  // Override CSS text variables so all text stays readable against the custom bg
+  // Override CSS variables so ALL UI elements stay readable against the custom bg.
+  // When bgLightness > 52 we emulate light-mode tokens; otherwise dark-mode tokens.
   const textVars: React.CSSProperties = listBg
     ? bgLightness > 52
-      ? ({ '--foreground': '222 47% 8%', '--muted-foreground': '215 16% 32%' } as React.CSSProperties)
-      : ({ '--foreground': '210 40% 96%', '--muted-foreground': '215 20% 72%' } as React.CSSProperties)
+      ? ({
+          '--foreground':        '222 47% 8%',
+          '--muted-foreground':  '215 16% 32%',
+          '--muted':             '220 14% 88%',
+          '--card':              '220 10% 96%',
+          '--card-foreground':   '222 47% 8%',
+          '--border':            '220 15% 74%',
+          '--input':             '220 15% 74%',
+        } as React.CSSProperties)
+      : ({
+          '--foreground':        '210 40% 96%',
+          '--muted-foreground':  '215 20% 72%',
+          '--muted':             '220 12% 22%',
+          '--card':              '222 14% 18%',
+          '--card-foreground':   '210 40% 96%',
+          '--border':            '220 12% 30%',
+          '--input':             '220 12% 30%',
+        } as React.CSSProperties)
     : {};
 
 
