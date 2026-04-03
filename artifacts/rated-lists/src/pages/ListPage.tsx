@@ -279,7 +279,9 @@ export default function ListPage({ params }: Props) {
           h = h * 60;
         }
         totalSampled++;
-        if (s < 0.15) {
+        // Treat near-black, near-white, or low-saturation pixels as neutral —
+        // very dark/light pixels carry no meaningful hue even if technically tinted.
+        if (s < 0.18 || l < 0.15 || l > 0.88) {
           greyCount++;
           greyLSum += l * 100;
         } else {
@@ -290,7 +292,7 @@ export default function ListPage({ params }: Props) {
       }
     }
 
-    if (greyCount / totalSampled > 0.55) {
+    if (greyCount / totalSampled > 0.45) {
       const avgGreyL = greyCount > 0 ? greyLSum / greyCount : 50;
       return { hue: 380, lightness: Math.round(avgGreyL) };
     }
