@@ -67,7 +67,7 @@ export default function Home() {
       try {
         const parsed = JSON.parse(e.target?.result as string);
         if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.lists)) {
-          showToast("Invalid file — not a Ratings backup.", false);
+          showToast("Invalid file — not a Rating Lists backup.", false);
           return;
         }
         importData(parsed);
@@ -149,7 +149,7 @@ export default function Home() {
     <div className="min-h-screen pb-24">
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
-          <h1 className="text-3xl font-bold text-foreground">Ratings</h1>
+          <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
           <button
             onClick={() => setSettingsOpen(true)}
             aria-label="Settings"
