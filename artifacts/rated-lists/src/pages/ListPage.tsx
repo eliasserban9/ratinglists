@@ -311,7 +311,7 @@ export default function ListPage({ params }: Props) {
     const canvas = await cropToSquareCanvas(file);
     const { hue, lightness } = extractDominantColor(canvas);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    applyListPhoto(id, dataUrl, hue, Math.min(93, lightness + 12));
+    applyListPhoto(id, dataUrl, hue, Math.min(93, lightness + 5));
     e.target.value = "";
   }
 
