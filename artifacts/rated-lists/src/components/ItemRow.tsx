@@ -101,7 +101,7 @@ export function ItemRow({
   }
 
   return (
-    <div ref={rowRef} className="flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: s.bg, zoom: `${Math.round(scale * 100)}%` }}>
+    <div ref={rowRef} className="flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: s.bg, border: `1px solid ${s.borderColor}`, zoom: `${Math.round(scale * 100)}%` }}>
       {/* Main row */}
       <div className="flex items-stretch">
         {showMoveBar && (

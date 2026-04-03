@@ -46,6 +46,7 @@ export function ratingToColorRgba(rating: number, lightness: number, alpha: numb
 
 export interface ItemColors {
   bg: string;
+  borderColor: string;
   rankColor: string;
   nameColor: string;
   ratingColor: string;
@@ -66,6 +67,7 @@ export function ratingColors(rating: number): ItemColors {
   const hsla = (l: number, a: number) => `hsla(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l}%, ${a})`;
   return {
     bg:           hsl(18),
+    borderColor:  hsl(38),
     rankColor:    hsla(78, 0.6),
     nameColor:    hsl(93),
     ratingColor:  hsl(72),
