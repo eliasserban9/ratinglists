@@ -4,6 +4,9 @@ import { ratingColors, fmt } from "@/lib/ratingColor";
 
 export { fmt, ratingColors };
 
+// Natural item height baseline for font scaling (py-3 + text-sm line ≈ 48px)
+const PREVIEW_ROW_BASELINE = 48;
+
 interface Props {
   item: ListItem;
   rank?: number;
@@ -17,13 +20,18 @@ interface Props {
   isLast?: boolean;
   scale?: number;
   hideDelete?: boolean;
+  previewRowHeight?: number;
 }
 
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,
   showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, hideDelete = false,
+  previewRowHeight,
 }: Props) {
+  const fontScale = previewRowHeight
+    ? Math.max(0.6, Math.min(3, previewRowHeight / PREVIEW_ROW_BASELINE))
+    : 1;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -100,10 +108,27 @@ export function ItemRow({
     }
   }
 
+  const rankSize = previewRowHeight ? Math.max(10, Math.round(12 * fontScale)) : undefined;
+  const textSize = previewRowHeight ? Math.max(11, Math.round(14 * fontScale)) : undefined;
+  const rankWidth = previewRowHeight ? Math.max(16, Math.round(20 * fontScale)) : undefined;
+  const px = previewRowHeight ? Math.max(8, Math.round(12 * fontScale)) : 12;
+  const gap = previewRowHeight ? Math.max(8, Math.round(12 * fontScale)) : 12;
+
   return (
-    <div ref={rowRef} className="flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: s.bg, zoom: `${Math.round(scale * 100)}%` }}>
+    <div
+      ref={rowRef}
+      className="flex flex-col rounded-xl overflow-hidden"
+      style={{
+        backgroundColor: s.bg,
+        zoom: `${Math.round(scale * 100)}%`,
+        ...(previewRowHeight ? { height: `${previewRowHeight}px` } : {}),
+      }}
+    >
       {/* Main row */}
-      <div className="flex items-stretch">
+      <div
+        className={`flex ${previewRowHeight ? "items-center" : "items-stretch"}`}
+        style={previewRowHeight ? { flex: 1 } : undefined}
+      >
         {showMoveBar && (
           <div
             className="flex flex-col items-center justify-center w-8 shrink-0 gap-0.5 py-1"
@@ -126,9 +151,15 @@ export function ItemRow({
           </div>
         )}
 
-        <div className="flex items-center gap-3 flex-1 px-3 py-3 min-w-0">
+        <div
+          className={`flex items-center flex-1 min-w-0${previewRowHeight ? "" : " px-3 py-3 gap-3"}`}
+          style={previewRowHeight ? { paddingLeft: px, paddingRight: px, gap } : undefined}
+        >
           {rank !== undefined && (
-            <span className="text-xs w-5 text-center font-mono shrink-0" style={{ color: s.rankColor }}>
+            <span
+              className={`text-center font-mono shrink-0${previewRowHeight ? "" : " text-xs w-5"}`}
+              style={{ color: s.rankColor, fontSize: rankSize, width: rankWidth }}
+            >
               {rank}
             </span>
           )}
@@ -141,15 +172,15 @@ export function ItemRow({
               onChange={(e) => setRenameValue(e.target.value)}
               onBlur={commitRename}
               onKeyDown={handleRenameKey}
-              className="flex-1 bg-transparent border-b outline-none text-sm font-medium min-w-0"
-              style={{ borderColor: s.ratingColor, color: s.nameColor }}
+              className={`flex-1 bg-transparent border-b outline-none font-medium min-w-0${previewRowHeight ? "" : " text-sm"}`}
+              style={{ borderColor: s.ratingColor, color: s.nameColor, fontSize: textSize }}
               maxLength={80}
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <span
-              className="flex-1 text-sm font-medium truncate min-w-0 cursor-pointer"
-              style={{ color: s.nameColor }}
+              className={`flex-1 font-medium truncate min-w-0 cursor-pointer${previewRowHeight ? "" : " text-sm"}`}
+              style={{ color: s.nameColor, fontSize: textSize }}
               onClick={onRename ? startRename : undefined}
               title={onRename ? "Tap to rename" : undefined}
             >
@@ -160,8 +191,8 @@ export function ItemRow({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={openPicker}
-              className="text-sm font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80"
-              style={{ color: s.ratingColor }}
+              className={`font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80${previewRowHeight ? "" : " text-sm"}`}
+              style={{ color: s.ratingColor, fontSize: textSize }}
               aria-label="Change rating"
             >
               {fmt(item.rating)}/10
