@@ -460,6 +460,20 @@ export function useLists() {
     [data, persist]
   );
 
+  const applyListPhoto = useCallback(
+    (listId: string, dataUrl: string, hue: number, lightness: number) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === listId
+            ? { ...l, coverPhoto: dataUrl, bgHue: hue, bgLightness: lightness }
+            : l
+        ),
+      });
+    },
+    [data, persist]
+  );
+
   const setCategorySortMode = useCallback(
     (categoryId: string, sortMode: SortMode) => {
       persist({
@@ -546,6 +560,7 @@ export function useLists() {
     setListBgColor,
     setListBgLightness,
     setListCoverPhoto,
+    applyListPhoto,
     createCategory,
     deleteCategory,
     restoreFromTrash,

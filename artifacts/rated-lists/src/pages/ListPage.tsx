@@ -30,7 +30,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListBgLightness, setListCoverPhoto,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListBgLightness, setListCoverPhoto, applyListPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -314,9 +314,7 @@ export default function ListPage({ params }: Props) {
     const canvas = await cropToSquareCanvas(file);
     const { hue, lightness } = extractDominantColor(canvas);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    setListCoverPhoto(id, dataUrl);
-    setListBgColor(id, hue);
-    setListBgLightness(id, lightness);
+    applyListPhoto(id, dataUrl, hue, lightness);
     e.target.value = "";
   }
 
