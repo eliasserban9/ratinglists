@@ -342,7 +342,7 @@ export default function ListPage({ params }: Props) {
   const listBg = list.bgHue !== undefined
     ? isGrey
       ? `hsl(0 0% ${bgLightness}%)`
-      : `hsl(${list.bgHue} ${isDark ? 42 : 62}% ${bgLightness}%)`
+      : `hsl(${list.bgHue} ${isDark ? 22 : 32}% ${bgLightness}%)`
     : undefined;
 
   // Override CSS text variables so all text stays readable against the custom bg
