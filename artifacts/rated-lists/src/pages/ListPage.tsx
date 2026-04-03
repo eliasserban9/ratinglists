@@ -255,11 +255,9 @@ export default function ListPage({ params }: Props) {
     const NUM_BUCKETS = 36;
     const bucketCounts = new Array(NUM_BUCKETS).fill(0);
     const bucketLightness: number[][] = Array.from({ length: NUM_BUCKETS }, () => []);
-    let greyCount = 0;
-    let greyLSum = 0;
-    let totalSampled = 0;
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const pixels = imageData.data;
+    let totalL = 0;
+    let totalPixels = 0;
+    const pixels = ctx.getImageData(0, 0, width, height).data;
 
     for (let y = 0; y < height; y += step) {
       for (let x = 0; x < width; x += step) {
@@ -271,6 +269,9 @@ export default function ListPage({ params }: Props) {
         const min = Math.min(r, g, b);
         const l = (max + min) / 2;
         const s = max === min ? 0 : l > 0.5 ? (max - min) / (2 - max - min) : (max - min) / (max + min);
+        totalL += l * 100;
+        totalPixels++;
+        if (s < 0.1) continue; // no meaningful hue — skip
         let h = 0;
         if (max !== min) {
           if (max === r) h = (g - b) / (max - min) + (g < b ? 6 : 0);
@@ -278,27 +279,19 @@ export default function ListPage({ params }: Props) {
           else h = (r - g) / (max - min) + 4;
           h = h * 60;
         }
-        totalSampled++;
-        if (s < 0.18) {
-          // Truly unsaturated → counts as grey evidence
-          greyCount++;
-          greyLSum += l * 100;
-        } else if (l < 0.15 || l > 0.88) {
-          // Too dark/light to carry meaningful hue — skip without being grey evidence
-        } else {
-          // Properly coloured pixel — add to hue bucket
-          const bucket = Math.floor(h / (360 / NUM_BUCKETS)) % NUM_BUCKETS;
-          bucketCounts[bucket]++;
-          bucketLightness[bucket].push(l * 100);
-        }
+        const bucket = Math.floor(h / (360 / NUM_BUCKETS)) % NUM_BUCKETS;
+        bucketCounts[bucket]++;
+        bucketLightness[bucket].push(l * 100);
       }
     }
 
-    if (greyCount / totalSampled > 0.65) {
-      const avgGreyL = greyCount > 0 ? greyLSum / greyCount : 50;
-      return { hue: 380, lightness: Math.round(avgGreyL) };
+    const totalColoured = bucketCounts.reduce((a, b) => a + b, 0);
+    // If fewer than 10% of pixels have meaningful colour, treat as neutral/grey
+    if (totalColoured / totalPixels < 0.1) {
+      return { hue: 380, lightness: Math.round(totalL / totalPixels) };
     }
 
+    // Smooth adjacent buckets to avoid splitting a single colour across two buckets
     const smoothed = bucketCounts.map((_, i) => {
       const prev = bucketCounts[(i - 1 + NUM_BUCKETS) % NUM_BUCKETS];
       const next = bucketCounts[(i + 1) % NUM_BUCKETS];
@@ -317,9 +310,8 @@ export default function ListPage({ params }: Props) {
     if (!file) return;
     const canvas = await cropToSquareCanvas(file);
     const { hue, lightness } = extractDominantColor(canvas);
-    const bgL = Math.min(92, lightness + 8);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    applyListPhoto(id, dataUrl, hue, bgL);
+    applyListPhoto(id, dataUrl, hue, lightness);
     e.target.value = "";
   }
 
