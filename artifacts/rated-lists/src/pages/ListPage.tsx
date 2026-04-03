@@ -325,7 +325,7 @@ export default function ListPage({ params }: Props) {
       const canvas = await cropToSquareCanvas(file);
       const { hue, lightness } = extractDominantColor(canvas);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-      applyListPhoto(id, dataUrl, hue, Math.min(93, lightness + 5));
+      applyListPhoto(id, dataUrl, hue, Math.max(8, lightness - 8));
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : "Failed to upload photo.");
       setTimeout(() => setPhotoError(null), 4000);
@@ -406,20 +406,28 @@ export default function ListPage({ params }: Props) {
               );
             })()}
 
-            {/* Camera / gallery button — only shown in preview mode */}
+            {/* Camera / remove-photo button — only shown in preview mode */}
             {previewMode && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-8 h-8 flex items-center justify-center rounded-full border text-base transition-colors hover:opacity-70"
-                style={{
-                  backgroundColor: "hsl(var(--muted))",
-                  borderColor: "hsl(var(--border))",
-                  color: "hsl(var(--foreground))",
-                }}
-                aria-label="Upload cover photo"
-              >
-                📷
-              </button>
+              list.coverPhoto ? (
+                <button
+                  onClick={() => { setListCoverPhoto(id, null); setListBgColor(id, null); }}
+                  className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors hover:opacity-80"
+                  style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }}
+                  aria-label="Remove cover photo"
+                >
+                  <span>✕</span>
+                  <span>Photo</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-8 h-8 flex items-center justify-center rounded-full border text-base transition-colors hover:opacity-70"
+                  style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                  aria-label="Upload cover photo"
+                >
+                  📷
+                </button>
+              )
             )}
 
             <button
