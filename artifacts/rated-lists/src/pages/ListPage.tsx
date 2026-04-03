@@ -24,6 +24,7 @@ function sortLabel(mode: SortMode) {
 const MIN_ITEMS_PER_PAGE = 3;
 const MAX_ITEMS_PER_PAGE_DEFAULT = 11;
 const MAX_ITEMS_PER_PAGE_PHOTO = 9;
+const MIN_PREVIEW_SCALE = 0.8;
 
 export default function ListPage({ params }: Props) {
   const { id } = params;
@@ -46,6 +47,7 @@ export default function ListPage({ params }: Props) {
   const [pageScale, setPageScale] = useState(1);
   const [previewPage, setPreviewPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [effectivePreviewIPP, setEffectivePreviewIPP] = useState(10);
   const [scrolledPastHalf, setScrolledPastHalf] = useState(false);
   const prevItemsPerPageRef = useRef(10);
 
@@ -95,12 +97,10 @@ export default function ListPage({ params }: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Recompute preview scale whenever mode, item count, or items-per-page changes.
+  // Recompute preview scale whenever mode, item count, items-per-page, or note changes.
   useLayoutEffect(() => {
     const itemCount = list?.items.length ?? 0;
     const previewModeChanged = prevPreviewModeRef.current !== previewMode;
-    const itemCountChanged = prevItemCountRef.current !== itemCount;
-    const ippChanged = prevItemsPerPageRef.current !== itemsPerPage;
 
     prevPreviewModeRef.current = previewMode;
     prevItemCountRef.current = itemCount;
@@ -110,11 +110,11 @@ export default function ListPage({ params }: Props) {
       if (previewModeChanged) {
         setPageScale(1);
         setPreviewPage(0);
+        setEffectivePreviewIPP(itemsPerPage);
       }
       return;
     }
 
-    if (!previewModeChanged && !itemCountChanged && !ippChanged) return;
     if (!measureRef.current || !itemsRef.current) return;
 
     setPreviewPage(0);
@@ -126,11 +126,21 @@ export default function ListPage({ params }: Props) {
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
     const perItemHeight = naturalHeight / itemCount;
-    const referenceItems = Math.min(itemsPerPage, itemCount);
-    const referenceHeight = perItemHeight * referenceItems;
-    const scale = Math.min(1, availableHeight / referenceHeight);
+
+    // Find the largest IPP that keeps scale >= MIN_PREVIEW_SCALE
+    let bestIPP = itemsPerPage;
+    while (bestIPP > MIN_ITEMS_PER_PAGE) {
+      const refItems = Math.min(bestIPP, itemCount);
+      const s = availableHeight / (perItemHeight * refItems);
+      if (s >= MIN_PREVIEW_SCALE) break;
+      bestIPP--;
+    }
+
+    const referenceItems = Math.min(bestIPP, itemCount);
+    const scale = Math.min(1, availableHeight / (perItemHeight * referenceItems));
+    setEffectivePreviewIPP(bestIPP);
     setPageScale(scale);
-  }, [previewMode, list?.items.length, itemsPerPage]);
+  }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
 
   if (!list) {
     return (
@@ -158,11 +168,12 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Pagination derived values
-  const totalPages = previewMode ? Math.ceil(displayedItems.length / itemsPerPage) : 1;
+  // Pagination derived values — use effectivePreviewIPP in preview (auto-reduced to keep min scale)
+  const activeIPP = previewMode ? effectivePreviewIPP : itemsPerPage;
+  const totalPages = previewMode ? Math.ceil(displayedItems.length / activeIPP) : 1;
   const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
-  const pageStart = safePage * itemsPerPage;
-  const pageEnd = Math.min(pageStart + itemsPerPage, displayedItems.length);
+  const pageStart = safePage * activeIPP;
+  const pageEnd = Math.min(pageStart + activeIPP, displayedItems.length);
   const currentPageItems = previewMode
     ? displayedItems.slice(pageStart, pageEnd)
     : displayedItems;
@@ -203,7 +214,6 @@ export default function ListPage({ params }: Props) {
   }
 
   function startNoteEdit() {
-    if (previewMode) return;
     setNoteValue(list!.note ?? "");
     setEditingNote(true);
   }
@@ -607,6 +617,60 @@ export default function ListPage({ params }: Props) {
         )}
 
         {previewMode && !list.coverPhoto && <div className="mb-2" />}
+
+        {/* Note section — shown in preview mode above items */}
+        {previewMode && (
+          <div className="mb-3">
+            {editingNote ? (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  ref={noteRef}
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  onKeyDown={handleNoteKey}
+                  placeholder="Add a note…"
+                  rows={3}
+                  className="w-full text-sm bg-transparent border-b outline-none resize-none placeholder:opacity-40"
+                  style={{
+                    borderColor: "hsl(var(--border))",
+                    color: "hsl(var(--foreground))",
+                  }}
+                />
+                <div className="flex justify-start">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); commitNoteEdit(); }}
+                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{
+                      backgroundColor: "hsl(var(--primary))",
+                      color: "hsl(var(--primary-foreground))",
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : list.note ? (
+              <p
+                className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+                onClick={startNoteEdit}
+                title="Tap to edit note"
+              >
+                {list.note}
+              </p>
+            ) : (
+              <div className="flex justify-center">
+                <button
+                  onClick={startNoteEdit}
+                  className="text-sm font-medium transition-opacity hover:opacity-60"
+                  style={{ color: "hsl(var(--muted-foreground) / 45%)" }}
+                >
+                  + note
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {displayedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
