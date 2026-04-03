@@ -113,7 +113,10 @@ export default function ListPage({ params }: Props) {
 
     const naturalHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
-    const availableHeight = window.innerHeight - rect.top - 8;
+    // Reserve space for the page-nav bar (fixed bottom-6 + h-9 ≈ 60px) plus a safe margin
+    const willHavePagination = itemCount > itemsPerPage;
+    const bottomReserve = willHavePagination ? 72 : 24;
+    const availableHeight = window.innerHeight - rect.top - bottomReserve;
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
