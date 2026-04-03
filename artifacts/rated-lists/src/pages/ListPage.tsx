@@ -583,22 +583,12 @@ export default function ListPage({ params }: Props) {
         {/* Cover photo — shown in preview mode between header and items */}
         {previewMode && list.coverPhoto && (
           <div className="flex justify-center mb-3">
-            <div className="relative group">
-              <img
-                src={list.coverPhoto}
-                alt="Cover"
-                className="rounded-2xl object-cover"
-                style={{ width: 220, height: 220 }}
-              />
-              <button
-                onClick={() => setListCoverPhoto(id, null)}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ backgroundColor: "rgba(0,0,0,0.55)", color: "#fff" }}
-                aria-label="Remove photo"
-              >
-                ✕
-              </button>
-            </div>
+            <img
+              src={list.coverPhoto}
+              alt="Cover"
+              className="rounded-2xl object-cover"
+              style={{ width: 220, height: 220 }}
+            />
           </div>
         )}
 
