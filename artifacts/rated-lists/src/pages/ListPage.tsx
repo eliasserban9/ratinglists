@@ -120,10 +120,8 @@ export default function ListPage({ params }: Props) {
 
     if (naturalHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
-    const referenceItems = Math.min(itemsPerPage, itemCount);
-    const perItemHeight = naturalHeight / itemCount;
-    const referenceHeight = perItemHeight * referenceItems;
-    const scale = Math.min(1, availableHeight / referenceHeight);
+    // measureRef already contains exactly the current page's items at 1x scale
+    const scale = Math.min(1, availableHeight / naturalHeight);
     setPageScale(scale);
   }, [previewMode, list?.items.length, itemsPerPage, list?.note]);
 
