@@ -279,12 +279,14 @@ export default function ListPage({ params }: Props) {
           h = h * 60;
         }
         totalSampled++;
-        // Treat near-black, near-white, or low-saturation pixels as neutral —
-        // very dark/light pixels carry no meaningful hue even if technically tinted.
-        if (s < 0.18 || l < 0.15 || l > 0.88) {
+        if (s < 0.18) {
+          // Truly unsaturated → counts as grey evidence
           greyCount++;
           greyLSum += l * 100;
+        } else if (l < 0.15 || l > 0.88) {
+          // Too dark/light to carry meaningful hue — skip without being grey evidence
         } else {
+          // Properly coloured pixel — add to hue bucket
           const bucket = Math.floor(h / (360 / NUM_BUCKETS)) % NUM_BUCKETS;
           bucketCounts[bucket]++;
           bucketLightness[bucket].push(l * 100);
@@ -292,7 +294,7 @@ export default function ListPage({ params }: Props) {
       }
     }
 
-    if (greyCount / totalSampled > 0.45) {
+    if (greyCount / totalSampled > 0.65) {
       const avgGreyL = greyCount > 0 ? greyLSum / greyCount : 50;
       return { hue: 380, lightness: Math.round(avgGreyL) };
     }
