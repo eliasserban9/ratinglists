@@ -30,7 +30,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, setListCoverPhoto, applyListPhoto,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setListBgColor, applyListPhoto, removeListPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -410,7 +410,7 @@ export default function ListPage({ params }: Props) {
             {previewMode && (
               list.coverPhoto ? (
                 <button
-                  onClick={() => { setListCoverPhoto(id, null); setListBgColor(id, null); }}
+                  onClick={() => removeListPhoto(id)}
                   className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors hover:opacity-80"
                   style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }}
                   aria-label="Remove cover photo"

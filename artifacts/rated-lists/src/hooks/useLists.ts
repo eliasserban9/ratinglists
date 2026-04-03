@@ -474,6 +474,20 @@ export function useLists() {
     [data, persist]
   );
 
+  const removeListPhoto = useCallback(
+    (listId: string) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) =>
+          l.id === listId
+            ? { ...l, coverPhoto: undefined, bgHue: undefined, bgLightness: undefined }
+            : l
+        ),
+      });
+    },
+    [data, persist]
+  );
+
   const setCategorySortMode = useCallback(
     (categoryId: string, sortMode: SortMode) => {
       persist({
@@ -561,6 +575,7 @@ export function useLists() {
     setListBgLightness,
     setListCoverPhoto,
     applyListPhoto,
+    removeListPhoto,
     createCategory,
     deleteCategory,
     restoreFromTrash,
