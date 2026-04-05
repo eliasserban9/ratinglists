@@ -60,7 +60,7 @@ export default function CategoryPage({ params }: Props) {
       if (rb === null) return -1;
       return rb - ra;
     }
-    return a.createdAt - b.createdAt;
+    return b.createdAt - a.createdAt;
   });
 
   function handleCreate(title: string) {
