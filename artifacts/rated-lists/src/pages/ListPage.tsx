@@ -325,7 +325,7 @@ export default function ListPage({ params }: Props) {
   const defaultLightness = isDark ? 13 : 78;
   const bgLightness = list.bgLightness ?? defaultLightness;
   // In preview mode, render bg slightly darker
-  const effectiveLightness = previewMode ? Math.max(2, bgLightness - 5) : bgLightness;
+  const effectiveLightness = previewMode ? Math.max(2, bgLightness - 2) : bgLightness;
   // bgHue is stored 0–400; values >360 enter the grey/black zone (sat=0)
   const isGrey = list.bgHue !== undefined && list.bgHue > 360;
   const listBg = list.bgHue !== undefined
