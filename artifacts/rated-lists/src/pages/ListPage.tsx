@@ -324,12 +324,14 @@ export default function ListPage({ params }: Props) {
   const isDark = document.documentElement.classList.contains("dark");
   const defaultLightness = isDark ? 13 : 78;
   const bgLightness = list.bgLightness ?? defaultLightness;
+  // In preview mode, render bg slightly darker
+  const effectiveLightness = previewMode ? Math.max(2, bgLightness - 5) : bgLightness;
   // bgHue is stored 0–400; values >360 enter the grey/black zone (sat=0)
   const isGrey = list.bgHue !== undefined && list.bgHue > 360;
   const listBg = list.bgHue !== undefined
     ? isGrey
-      ? `hsl(0 0% ${bgLightness}%)`
-      : `hsl(${list.bgHue} ${isDark ? 22 : 32}% ${bgLightness}%)`
+      ? `hsl(0 0% ${effectiveLightness}%)`
+      : `hsl(${list.bgHue} ${isDark ? 22 : 32}% ${effectiveLightness}%)`
     : undefined;
 
   // Override CSS variables so ALL UI elements stay readable against the custom bg.
@@ -698,6 +700,7 @@ export default function ListPage({ params }: Props) {
                     isFirst={index === 0}
                     isLast={index === previewItems.length - 1}
                     hideDelete={previewMode}
+                    textScale={previewMode ? 1 : 0.85}
                   />
                 ))}
               </div>
