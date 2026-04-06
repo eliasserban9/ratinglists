@@ -28,6 +28,7 @@ export default function ListPage({ params }: Props) {
   const { id } = params;
   const [, navigate] = useLocation();
   const {
+    loading: listsLoading,
     getList, getCategory, addItem, updateItemRating, deleteItem,
     setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, applyListPhoto, removeListPhoto,
   } = useLists();
@@ -128,7 +129,7 @@ export default function ListPage({ params }: Props) {
   if (!list) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">List not found.</p>
+        <p className="text-muted-foreground">{listsLoading ? "Loading…" : "List not found."}</p>
       </div>
     );
   }

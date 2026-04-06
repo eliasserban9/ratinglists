@@ -24,6 +24,7 @@ export default function CategoryPage({ params }: Props) {
   const { id } = params;
   const [, navigate] = useLocation();
   const {
+    loading: listsLoading,
     getCategory, getListsForCategory, createListInCategory,
     deleteList, setColorMode, renameCategory, setCategorySortMode,
   } = useLists();
@@ -43,7 +44,7 @@ export default function CategoryPage({ params }: Props) {
   if (!category) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Category not found.</p>
+        <p className="text-muted-foreground">{listsLoading ? "Loading…" : "Category not found."}</p>
       </div>
     );
   }

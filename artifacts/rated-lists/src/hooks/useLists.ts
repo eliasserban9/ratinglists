@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface ListItem {
   id: string;
@@ -48,66 +49,54 @@ export interface TrashItem {
   categoryLists?: RatedList[];
 }
 
-interface StoredData {
+export interface StoredData {
   lists: RatedList[];
   categories: Category[];
   standaloneItems: StandaloneItem[];
   trash: TrashItem[];
 }
 
-const STORAGE_KEY = "rated-lists-data-v2";
 export const TRASH_TTL = 24 * 60 * 60 * 1000;
+
+const EMPTY: StoredData = { lists: [], categories: [], standaloneItems: [], trash: [] };
+const USER_DATA_KEY = ["user-data"];
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function purgeExpired(trash: TrashItem[]): TrashItem[] {
   const cutoff = Date.now() - TRASH_TTL;
   return trash.filter((t) => t.deletedAt >= cutoff);
 }
 
-function load(): StoredData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && Array.isArray(parsed.lists)) {
-        return {
-          lists: parsed.lists.map((l: RatedList) => ({
-            colorMode: false,
-            sortMode: "rating" as SortMode,
-            updatedAt: l.createdAt,
-            ...l,
-          })),
-          categories: Array.isArray(parsed.categories) ? parsed.categories : [],
-          standaloneItems: Array.isArray(parsed.standaloneItems) ? parsed.standaloneItems : [],
-          trash: purgeExpired(Array.isArray(parsed.trash) ? parsed.trash : []),
-        };
-      }
-    }
-    // Migrate from old key
-    const oldRaw = localStorage.getItem("rated-lists-data");
-    if (oldRaw) {
-      const oldLists = JSON.parse(oldRaw);
-      if (Array.isArray(oldLists)) {
-        return {
-          lists: oldLists.map((l: RatedList) => ({
-            colorMode: false,
-            sortMode: "rating" as SortMode,
-            updatedAt: l.createdAt,
-            ...l,
-          })),
-          categories: [],
-          standaloneItems: [],
-          trash: [],
-        };
-      }
-    }
-    return { lists: [], categories: [], standaloneItems: [], trash: [] };
-  } catch {
-    return { lists: [], categories: [], standaloneItems: [], trash: [] };
-  }
+function normalize(raw: Partial<StoredData>): StoredData {
+  return {
+    lists: (raw.lists ?? []).map((l) => ({
+      colorMode: false,
+      sortMode: "rating" as SortMode,
+      updatedAt: l.createdAt,
+      ...l,
+    })),
+    categories: raw.categories ?? [],
+    standaloneItems: raw.standaloneItems ?? [],
+    trash: purgeExpired(raw.trash ?? []),
+  };
 }
 
-function save(data: StoredData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+async function fetchUserData(): Promise<StoredData> {
+  const r = await fetch("/api/user-data");
+  if (!r.ok) throw new Error("Failed to load user data");
+  return normalize(await r.json());
+}
+
+function scheduleSave(data: StoredData) {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    fetch("/api/user-data", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).catch(() => {});
+  }, 800);
 }
 
 function uid() {
@@ -115,14 +104,26 @@ function uid() {
 }
 
 export function useLists() {
-  const [data, setData] = useState<StoredData>(load);
+  const queryClient = useQueryClient();
 
-  const persist = useCallback((updated: StoredData) => {
-    save(updated);
-    setData(updated);
-  }, []);
+  const { data: queryData, isLoading } = useQuery({
+    queryKey: USER_DATA_KEY,
+    queryFn: fetchUserData,
+    staleTime: Infinity,
+    retry: 1,
+  });
 
-  // ── Top-level lists ───────────────────────────────────────────────────────
+  const data: StoredData = queryData ?? EMPTY;
+
+  const persist = useCallback(
+    (updated: StoredData) => {
+      queryClient.setQueryData(USER_DATA_KEY, updated);
+      scheduleSave(updated);
+    },
+    [queryClient]
+  );
+
+  // ── Top-level lists ────────────────────────────────────────────────────────
 
   const topLevelLists = data.lists.filter((l) => !l.categoryId);
 
@@ -200,7 +201,7 @@ export function useLists() {
     [data, persist]
   );
 
-  // ── Categories ────────────────────────────────────────────────────────────
+  // ── Categories ─────────────────────────────────────────────────────────────
 
   const createCategory = useCallback(
     (title: string): string => {
@@ -263,7 +264,7 @@ export function useLists() {
     [data]
   );
 
-  // ── Lists inside a category ───────────────────────────────────────────────
+  // ── Lists inside a category ────────────────────────────────────────────────
 
   const createListInCategory = useCallback(
     (categoryId: string, title: string): string => {
@@ -285,7 +286,7 @@ export function useLists() {
     [data, persist]
   );
 
-  // ── Items ─────────────────────────────────────────────────────────────────
+  // ── Items ──────────────────────────────────────────────────────────────────
 
   const addItem = useCallback(
     (listId: string, name: string, rating: number) => {
@@ -294,11 +295,7 @@ export function useLists() {
         lists: data.lists.map((l) =>
           l.id !== listId
             ? l
-            : {
-                ...l,
-                updatedAt: Date.now(),
-                items: [...l.items, { id: uid(), name: name.trim(), rating }],
-              }
+            : { ...l, updatedAt: Date.now(), items: [...l.items, { id: uid(), name: name.trim(), rating }] }
         ),
       });
     },
@@ -312,11 +309,7 @@ export function useLists() {
         lists: data.lists.map((l) =>
           l.id !== listId
             ? l
-            : {
-                ...l,
-                updatedAt: Date.now(),
-                items: l.items.map((item) => (item.id === itemId ? { ...item, rating } : item)),
-              }
+            : { ...l, updatedAt: Date.now(), items: l.items.map((item) => (item.id === itemId ? { ...item, rating } : item)) }
         ),
       });
     },
@@ -330,11 +323,7 @@ export function useLists() {
         lists: data.lists.map((l) =>
           l.id !== listId
             ? l
-            : {
-                ...l,
-                updatedAt: Date.now(),
-                items: l.items.filter((item) => item.id !== itemId),
-              }
+            : { ...l, updatedAt: Date.now(), items: l.items.filter((item) => item.id !== itemId) }
         ),
       });
     },
@@ -357,7 +346,7 @@ export function useLists() {
     [data, persist]
   );
 
-  // ── Standalone items ──────────────────────────────────────────────────────
+  // ── Standalone items ───────────────────────────────────────────────────────
 
   const addStandaloneItem = useCallback(
     (name: string, rating: number): string => {
@@ -396,30 +385,21 @@ export function useLists() {
     (listId: string, title: string) => {
       const t = title.trim();
       if (!t) return;
-      persist({
-        ...data,
-        lists: data.lists.map((l) => (l.id === listId ? { ...l, title: t } : l)),
-      });
+      persist({ ...data, lists: data.lists.map((l) => (l.id === listId ? { ...l, title: t } : l)) });
     },
     [data, persist]
   );
 
   const setListDescription = useCallback(
     (listId: string, description: string) => {
-      persist({
-        ...data,
-        lists: data.lists.map((l) => (l.id === listId ? { ...l, description } : l)),
-      });
+      persist({ ...data, lists: data.lists.map((l) => (l.id === listId ? { ...l, description } : l)) });
     },
     [data, persist]
   );
 
   const setListNote = useCallback(
     (listId: string, note: string) => {
-      persist({
-        ...data,
-        lists: data.lists.map((l) => (l.id === listId ? { ...l, note } : l)),
-      });
+      persist({ ...data, lists: data.lists.map((l) => (l.id === listId ? { ...l, note } : l)) });
     },
     [data, persist]
   );
@@ -438,12 +418,7 @@ export function useLists() {
 
   const setListBgLightness = useCallback(
     (listId: string, lightness: number) => {
-      persist({
-        ...data,
-        lists: data.lists.map((l) =>
-          l.id === listId ? { ...l, bgLightness: lightness } : l
-        ),
-      });
+      persist({ ...data, lists: data.lists.map((l) => (l.id === listId ? { ...l, bgLightness: lightness } : l)) });
     },
     [data, persist]
   );
@@ -465,9 +440,7 @@ export function useLists() {
       persist({
         ...data,
         lists: data.lists.map((l) =>
-          l.id === listId
-            ? { ...l, coverPhoto: dataUrl, bgHue: hue, bgLightness: lightness }
-            : l
+          l.id === listId ? { ...l, coverPhoto: dataUrl, bgHue: hue, bgLightness: lightness } : l
         ),
       });
     },
@@ -479,9 +452,7 @@ export function useLists() {
       persist({
         ...data,
         lists: data.lists.map((l) =>
-          l.id === listId
-            ? { ...l, coverPhoto: undefined, bgHue: undefined, bgLightness: undefined }
-            : l
+          l.id === listId ? { ...l, coverPhoto: undefined, bgHue: undefined, bgLightness: undefined } : l
         ),
       });
     },
@@ -490,10 +461,7 @@ export function useLists() {
 
   const setCategorySortMode = useCallback(
     (categoryId: string, sortMode: SortMode) => {
-      persist({
-        ...data,
-        categories: data.categories.map((c) => (c.id === categoryId ? { ...c, sortMode } : c)),
-      });
+      persist({ ...data, categories: data.categories.map((c) => (c.id === categoryId ? { ...c, sortMode } : c)) });
     },
     [data, persist]
   );
@@ -502,10 +470,7 @@ export function useLists() {
     (categoryId: string, title: string) => {
       const t = title.trim();
       if (!t) return;
-      persist({
-        ...data,
-        categories: data.categories.map((c) => (c.id === categoryId ? { ...c, title: t } : c)),
-      });
+      persist({ ...data, categories: data.categories.map((c) => (c.id === categoryId ? { ...c, title: t } : c)) });
     },
     [data, persist]
   );
@@ -530,10 +495,7 @@ export function useLists() {
     (itemId: string, name: string) => {
       const n = name.trim();
       if (!n) return;
-      persist({
-        ...data,
-        standaloneItems: data.standaloneItems.map((i) => (i.id === itemId ? { ...i, name: n } : i)),
-      });
+      persist({ ...data, standaloneItems: data.standaloneItems.map((i) => (i.id === itemId ? { ...i, name: n } : i)) });
     },
     [data, persist]
   );
@@ -542,23 +504,19 @@ export function useLists() {
 
   const importData = useCallback(
     (incoming: StoredData) => {
-      const normalized: StoredData = {
-        lists: (incoming.lists ?? []).map((l) => ({
-          colorMode: false,
-          sortMode: "rating" as SortMode,
-          updatedAt: l.createdAt,
-          ...l,
-        })),
-        categories: incoming.categories ?? [],
-        standaloneItems: incoming.standaloneItems ?? [],
-        trash: purgeExpired(Array.isArray(incoming.trash) ? incoming.trash : []),
-      };
-      persist(normalized);
+      const normalized = normalize(incoming);
+      queryClient.setQueryData(USER_DATA_KEY, normalized);
+      fetch("/api/user-data", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(normalized),
+      }).catch(() => {});
     },
-    [persist]
+    [queryClient]
   );
 
   return {
+    loading: isLoading,
     lists: topLevelLists,
     categories: data.categories,
     standaloneItems: data.standaloneItems,

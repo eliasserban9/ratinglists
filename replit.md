@@ -50,13 +50,23 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Packages
 
+### `artifacts/rated-lists` (`@workspace/rated-lists`)
+
+React + Vite + shadcn/ui frontend for the Rated Lists app.
+
+- Auth: Clerk (email/password + Google) via `@clerk/react`. Sign-in at `/sign-in`, sign-up at `/sign-up`, landing at `/`.
+- Data: `src/hooks/useLists.ts` — React Query powered, loads from `/api/user-data` on mount, debounced-saves (800ms) to API on every change. All list/category/item CRUD is in-memory + API-backed.
+- JSON backup/import still available on the home screen settings.
+- Env: `VITE_CLERK_PUBLISHABLE_KEY` required (auto-provisioned by Clerk setup).
+
 ### `artifacts/api-server` (`@workspace/api-server`)
 
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- App setup: `src/app.ts` — mounts Clerk proxy middleware, CORS, JSON/urlencoded parsing, Clerk middleware, routes at `/api`
+- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` (`GET /api/healthz`); `src/routes/userData.ts` (`GET/PUT /api/user-data`, requires Clerk auth)
+- Auth: `@clerk/express` — `requireAuth` middleware checks session cookie; `GET/PUT /api/user-data` are protected.
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
