@@ -74,11 +74,11 @@ function HomeRoute() {
   );
 }
 
-function ProtectedListPage() {
+function ProtectedListPage({ params }: { params: { id: string } }) {
   return (
     <>
       <Show when="signed-in">
-        <ListPage />
+        <ListPage params={params} />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
@@ -87,11 +87,11 @@ function ProtectedListPage() {
   );
 }
 
-function ProtectedCategoryPage() {
+function ProtectedCategoryPage({ params }: { params: { id: string } }) {
   return (
     <>
       <Show when="signed-in">
-        <CategoryPage />
+        <CategoryPage params={params} />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-in" />
