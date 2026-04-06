@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface ListItem {
@@ -60,8 +60,25 @@ export const TRASH_TTL = 24 * 60 * 60 * 1000;
 
 const EMPTY: StoredData = { lists: [], categories: [], standaloneItems: [], trash: [] };
 const USER_DATA_KEY = ["user-data"];
+const CACHE_KEY = "rated-lists-server-cache";
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function loadCache(): StoredData | undefined {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return undefined;
+    return JSON.parse(raw) as StoredData;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveCache(data: StoredData) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {}
+}
 
 function purgeExpired(trash: TrashItem[]): TrashItem[] {
   const cutoff = Date.now() - TRASH_TTL;
@@ -85,10 +102,13 @@ function normalize(raw: Partial<StoredData>): StoredData {
 async function fetchUserData(): Promise<StoredData> {
   const r = await fetch("/api/user-data");
   if (!r.ok) throw new Error("Failed to load user data");
-  return normalize(await r.json());
+  const fresh = normalize(await r.json());
+  saveCache(fresh);
+  return fresh;
 }
 
 function scheduleSave(data: StoredData) {
+  saveCache(data);
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     fetch("/api/user-data", {
@@ -111,6 +131,8 @@ export function useLists() {
     queryFn: fetchUserData,
     staleTime: Infinity,
     retry: 1,
+    initialData: loadCache,
+    initialDataUpdatedAt: 0,
   });
 
   const data: StoredData = queryData ?? EMPTY;
@@ -506,6 +528,7 @@ export function useLists() {
     (incoming: StoredData) => {
       const normalized = normalize(incoming);
       queryClient.setQueryData(USER_DATA_KEY, normalized);
+      saveCache(normalized);
       fetch("/api/user-data", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
