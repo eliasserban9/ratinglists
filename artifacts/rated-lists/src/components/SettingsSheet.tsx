@@ -8,11 +8,12 @@ interface Props {
   theme: "light" | "dark";
   onToggleTheme: () => void;
   onOpenTrash: () => void;
+  onSignOut: () => void;
 }
 
 export function SettingsSheet({
   open, onClose, onDownload, onUpload,
-  theme, onToggleTheme, onOpenTrash,
+  theme, onToggleTheme, onOpenTrash, onSignOut,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,6 +103,20 @@ export function SettingsSheet({
               <div className="font-semibold text-sm text-foreground">Trash</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 View and restore recently deleted lists and categories
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => { onClose(); onSignOut(); }}
+            className="flex items-center gap-4 w-full text-left border border-border rounded-2xl px-4 py-4 transition-colors active:scale-[.98]"
+            style={{ backgroundColor: "rgba(239,68,68,0.08)" }}
+          >
+            <span className="text-2xl">🚪</span>
+            <div>
+              <div className="font-semibold text-sm" style={{ color: "#f87171" }}>Sign Out</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Sign out of your account
               </div>
             </div>
           </button>

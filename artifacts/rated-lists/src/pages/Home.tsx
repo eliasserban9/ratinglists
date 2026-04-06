@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useClerk } from "@clerk/react";
 import { useLists } from "@/hooks/useLists";
 import { useTheme } from "@/hooks/useTheme";
 import { ListCard } from "@/components/ListCard";
@@ -19,6 +20,7 @@ export default function Home() {
   const [sortMode, setSortMode] = useState<SortMode>("added");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
+  const { signOut } = useClerk();
   const {
     lists,
     categories,
@@ -261,6 +263,7 @@ export default function Home() {
         theme={theme}
         onToggleTheme={toggle}
         onOpenTrash={() => setTrashOpen(true)}
+        onSignOut={() => signOut({ redirectUrl: "/" })}
       />
     </div>
   );
