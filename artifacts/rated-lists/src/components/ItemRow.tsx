@@ -9,6 +9,7 @@ interface Props {
   rank?: number;
   onRatingChange: (rating: number) => void;
   onRename?: (name: string) => void;
+  onEmojiChange?: (emoji: string) => void;
   onDelete: () => void;
   showMoveBar?: boolean;
   onMoveUp?: () => void;
@@ -21,17 +22,29 @@ interface Props {
   preview?: boolean;
 }
 
+function extractFirstEmoji(str: string): string {
+  if (!str) return "";
+  try {
+    const segmenter = new Intl.Segmenter();
+    const segments = [...segmenter.segment(str)];
+    return segments[0]?.segment ?? "";
+  } catch {
+    return [...str][0] ?? "";
+  }
+}
 
 export function ItemRow({
-  item, rank, onRatingChange, onRename, onDelete,
+  item, rank, onRatingChange, onRename, onEmojiChange, onDelete,
   showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, textScale = 1, hideDelete = false, preview = false,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const emojiInputRef = useRef<HTMLInputElement>(null);
   const renameRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const s = ratingColors(item.rating);
@@ -49,6 +62,19 @@ export function ItemRow({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [pickerOpen]);
 
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!emojiPickerOpen) return;
+    setTimeout(() => emojiInputRef.current?.focus(), 30);
+    function handleClick(e: MouseEvent) {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
+        setEmojiPickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [emojiPickerOpen]);
+
   // Focus rename input when it opens
   useEffect(() => {
     if (renaming) setTimeout(() => renameRef.current?.focus(), 30);
@@ -58,7 +84,14 @@ export function ItemRow({
     e.stopPropagation();
     if (preview || renaming) return;
     setInputValue(fmt(item.rating));
+    setEmojiPickerOpen(false);
     setPickerOpen((v) => !v);
+  }
+
+  function openEmojiPicker(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPickerOpen(false);
+    setEmojiPickerOpen((v) => !v);
   }
 
   function applyRating() {
@@ -74,12 +107,29 @@ export function ItemRow({
     if (e.key === "Escape") setPickerOpen(false);
   }
 
+  function handleEmojiInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    if (!val) return;
+    const emoji = extractFirstEmoji(val);
+    if (emoji) {
+      onEmojiChange?.(emoji);
+      setEmojiPickerOpen(false);
+    }
+  }
+
+  function clearEmoji(e: React.MouseEvent) {
+    e.stopPropagation();
+    onEmojiChange?.("");
+    setEmojiPickerOpen(false);
+  }
+
   function startRename(e: React.MouseEvent) {
     e.stopPropagation();
     if (!onRename) return;
     setRenameValue(item.name);
     setRenaming(true);
     setPickerOpen(false);
+    setEmojiPickerOpen(false);
   }
 
   function commitRename() {
@@ -160,6 +210,27 @@ export function ItemRow({
           )}
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Emoji — shown in both modes if set; button only in edit mode */}
+            {item.emoji ? (
+              <button
+                onClick={preview ? undefined : openEmojiPicker}
+                className={preview ? "cursor-default" : "transition-opacity hover:opacity-70"}
+                style={{ fontSize: `${1.15 * textScale}rem` }}
+                aria-label={preview ? undefined : "Change emoji"}
+              >
+                {item.emoji}
+              </button>
+            ) : !preview && onEmojiChange ? (
+              <button
+                onClick={openEmojiPicker}
+                className="transition-opacity hover:opacity-70 leading-none"
+                style={{ color: s.ratingColor, fontSize: `${0.95 * textScale}rem`, opacity: 0.45 }}
+                aria-label="Add emoji"
+              >
+                ☺
+              </button>
+            ) : null}
+
             <button
               onClick={openPicker}
               className="font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80"
@@ -225,6 +296,36 @@ export function ItemRow({
           >
             Set
           </button>
+        </div>
+      )}
+
+      {/* Inline emoji picker */}
+      {emojiPickerOpen && (
+        <div
+          className="flex items-center gap-2 px-3 pb-3"
+          style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
+        >
+          <input
+            ref={emojiInputRef}
+            type="text"
+            placeholder="Type or paste an emoji"
+            onChange={handleEmojiInput}
+            className="flex-1 rounded-lg px-3 py-2 text-sm outline-none min-w-0"
+            style={{
+              backgroundColor: s.inputBg,
+              border: `1.5px solid ${s.inputBorder}`,
+              color: s.inputText,
+            }}
+          />
+          {item.emoji && (
+            <button
+              onClick={clearEmoji}
+              className="px-3 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ backgroundColor: s.confirmBg, color: s.confirmFg }}
+            >
+              Clear
+            </button>
+          )}
         </div>
       )}
     </div>

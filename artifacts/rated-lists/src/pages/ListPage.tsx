@@ -29,7 +29,7 @@ export default function ListPage({ params }: Props) {
   const [, navigate] = useLocation();
   const {
     loading: listsLoading,
-    getList, getCategory, addItem, updateItemRating, deleteItem,
+    getList, getCategory, addItem, updateItemRating, setItemEmoji, deleteItem,
     setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, applyListPhoto, removeListPhoto,
   } = useLists();
 
@@ -711,6 +711,7 @@ export default function ListPage({ params }: Props) {
                     rank={pageStart + index + 1}
                     onRatingChange={previewMode ? () => {} : (rating) => updateItemRating(id, item.id, rating)}
                     onRename={previewMode ? undefined : (name) => renameItem(id, item.id, name)}
+                    onEmojiChange={previewMode ? undefined : (emoji) => setItemEmoji(id, item.id, emoji)}
                     onDelete={() => deleteItem(id, item.id)}
                     showMoveBar={!previewMode && currentSortMode === "added"}
                     onMoveUp={() => moveItem(id, item.id, "up")}
