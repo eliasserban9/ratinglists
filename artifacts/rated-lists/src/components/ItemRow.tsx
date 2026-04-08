@@ -103,7 +103,7 @@ export function ItemRow({
   }
 
   return (
-    <div ref={rowRef} className={`flex flex-col overflow-hidden ${preview ? "rounded-2xl" : "rounded-xl"}`} style={{ backgroundColor: s.bg, border: `1px solid ${s.borderColor}`, zoom: `${Math.round(scale * 100)}%`, ...(preview ? { opacity: 0.88 } : {}) }}>
+    <div ref={rowRef} className={`flex flex-col overflow-hidden ${preview ? "rounded-3xl" : "rounded-xl"}`} style={{ backgroundColor: s.bg, border: `1px solid ${s.borderColor}`, zoom: `${Math.round(scale * 100)}%`, ...(preview ? { opacity: 0.72 } : {}) }}>
       {/* Main row */}
       <div className="flex items-stretch">
         {showMoveBar && (
