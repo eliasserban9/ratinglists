@@ -18,12 +18,13 @@ interface Props {
   scale?: number;
   textScale?: number;
   hideDelete?: boolean;
+  preview?: boolean;
 }
 
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,
-  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, textScale = 1, hideDelete = false,
+  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, textScale = 1, hideDelete = false, preview = false,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -55,7 +56,7 @@ export function ItemRow({
 
   function openPicker(e: React.MouseEvent) {
     e.stopPropagation();
-    if (renaming) return;
+    if (preview || renaming) return;
     setInputValue(fmt(item.rating));
     setPickerOpen((v) => !v);
   }
@@ -102,7 +103,7 @@ export function ItemRow({
   }
 
   return (
-    <div ref={rowRef} className="flex flex-col rounded-xl overflow-hidden" style={{ backgroundColor: s.bg, border: `1px solid ${s.borderColor}`, zoom: `${Math.round(scale * 100)}%` }}>
+    <div ref={rowRef} className={`flex flex-col overflow-hidden ${preview ? "rounded-2xl" : "rounded-xl"}`} style={{ backgroundColor: s.bg, border: `1px solid ${s.borderColor}`, zoom: `${Math.round(scale * 100)}%`, ...(preview ? { opacity: 0.88 } : {}) }}>
       {/* Main row */}
       <div className="flex items-stretch">
         {showMoveBar && (
