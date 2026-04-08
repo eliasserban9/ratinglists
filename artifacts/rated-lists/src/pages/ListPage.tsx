@@ -358,13 +358,32 @@ export default function ListPage({ params }: Props) {
     : {};
 
 
+  const hasPhotoBg = previewMode && !!list.coverPhoto;
+
   return (
     <div
       className="min-h-screen"
       style={previewMode
-        ? { overflow: "hidden", ...(listBg ? { backgroundColor: listBg } : {}), ...textVars }
+        ? { position: "relative", overflow: "hidden", ...(!hasPhotoBg && listBg ? { backgroundColor: listBg } : {}), ...textVars }
         : { paddingBottom: "6rem" }}
     >
+      {hasPhotoBg && (
+        <>
+          <div style={{
+            position: "absolute", inset: "-30px",
+            backgroundImage: `url(${list.coverPhoto})`,
+            backgroundSize: "cover", backgroundPosition: "center",
+            filter: "blur(22px)",
+            zIndex: 0,
+          }} />
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundColor: "rgba(0,0,0,0.38)",
+            zIndex: 1,
+          }} />
+        </>
+      )}
+      <div style={hasPhotoBg ? { position: "relative", zIndex: 2 } : undefined}>
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 
         {/* Top bar: back + right buttons */}
@@ -831,6 +850,7 @@ export default function ListPage({ params }: Props) {
         onClose={() => setOpen(false)}
         onAdd={(name, rating) => { addItem(id, name, rating); setOpen(false); }}
       />
+      </div>
     </div>
   );
 }
