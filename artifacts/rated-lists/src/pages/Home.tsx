@@ -22,6 +22,7 @@ export default function Home() {
   const { theme, toggle } = useTheme();
   const { signOut } = useClerk();
   const {
+    loading,
     lists,
     categories,
     standaloneItems,
@@ -91,6 +92,22 @@ export default function Home() {
     } else {
       addStandaloneItem(title, rating ?? 5);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div
+          className="w-10 h-10 rounded-full border-4 border-muted"
+          style={{
+            borderTopColor: "hsl(var(--primary))",
+            animation: "spin 0.9s linear infinite",
+          }}
+        />
+        <p className="text-muted-foreground text-sm font-medium">Loading your lists…</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   const hasContent = lists.length > 0 || categories.length > 0 || standaloneItems.length > 0;

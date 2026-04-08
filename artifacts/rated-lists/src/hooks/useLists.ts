@@ -5,7 +5,6 @@ export interface ListItem {
   id: string;
   name: string;
   rating: number;
-  emoji?: string;
 }
 
 export type SortMode = "added" | "rating" | "name";
@@ -339,20 +338,6 @@ export function useLists() {
     [data, persist]
   );
 
-  const setItemEmoji = useCallback(
-    (listId: string, itemId: string, emoji: string) => {
-      persist({
-        ...data,
-        lists: data.lists.map((l) =>
-          l.id !== listId
-            ? l
-            : { ...l, updatedAt: Date.now(), items: l.items.map((item) => (item.id === itemId ? { ...item, emoji: emoji || undefined } : item)) }
-        ),
-      });
-    },
-    [data, persist]
-  );
-
   const deleteItem = useCallback(
     (listId: string, itemId: string) => {
       persist({
@@ -582,7 +567,6 @@ export function useLists() {
     setCategorySortMode,
     addItem,
     updateItemRating,
-    setItemEmoji,
     deleteItem,
     moveItem,
     reorderItems,
