@@ -89,7 +89,7 @@ export default function CategoryPage({ params }: Props) {
     <div className="min-h-screen pb-24">
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/", { replace: true })}
           className="flex items-center gap-1 text-primary text-sm mb-6 hover:opacity-70 transition-opacity"
         >
           <span className="text-lg leading-none">‹</span>

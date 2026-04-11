@@ -428,7 +428,7 @@ export default function ListPage({ params }: Props) {
         {/* Top bar: back + right buttons */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => navigate(backPath)}
+            onClick={() => navigate(backPath, { replace: true })}
             className="flex items-center gap-1 text-primary text-sm hover:opacity-70 transition-opacity"
           >
             <span className="text-lg leading-none">‹</span>

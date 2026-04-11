@@ -1,6 +1,6 @@
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, useClerk, useAuth } from "@clerk/react";
 import { useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +15,9 @@ const queryClient = new QueryClient();
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+// Check for cached data once at startup so we can skip the Clerk loading screen
+const hasCachedData = !!localStorage.getItem("rated-lists-server-cache");
 
 if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
@@ -62,42 +65,25 @@ function SignUpPage() {
 }
 
 function HomeRoute() {
-  return (
-    <>
-      <Show when="signed-in">
-        <Home />
-      </Show>
-      <Show when="signed-out">
-        <LandingPage />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  // While Clerk is still loading: show Home immediately if we have cached data,
+  // otherwise show LandingPage (avoids blank screen either way)
+  if (!isLoaded) return hasCachedData ? <Home /> : <LandingPage />;
+  return isSignedIn ? <Home /> : <LandingPage />;
 }
 
 function ProtectedListPage({ params }: { params: { id: string } }) {
-  return (
-    <>
-      <Show when="signed-in">
-        <ListPage params={params} />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  // Render the page immediately (cached data shows at once); only redirect once
+  // Clerk confirms the user is definitely signed out
+  if (isLoaded && !isSignedIn) return <Redirect to="/sign-in" />;
+  return <ListPage params={params} />;
 }
 
 function ProtectedCategoryPage({ params }: { params: { id: string } }) {
-  return (
-    <>
-      <Show when="signed-in">
-        <CategoryPage params={params} />
-      </Show>
-      <Show when="signed-out">
-        <Redirect to="/sign-in" />
-      </Show>
-    </>
-  );
+  const { isLoaded, isSignedIn } = useAuth();
+  if (isLoaded && !isSignedIn) return <Redirect to="/sign-in" />;
+  return <CategoryPage params={params} />;
 }
 
 function Router() {
