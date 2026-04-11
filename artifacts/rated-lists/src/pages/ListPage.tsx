@@ -30,7 +30,7 @@ export default function ListPage({ params }: Props) {
   const {
     loading: listsLoading,
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, applyListPhoto, removeListPhoto,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setIntroNote, applyListPhoto, removeListPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -40,9 +40,12 @@ export default function ListPage({ params }: Props) {
   const [descValue, setDescValue] = useState("");
   const [editingNote, setEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState("");
+  const [editingIntroNote, setEditingIntroNote] = useState(false);
+  const [introNoteValue, setIntroNoteValue] = useState("");
 
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const [pageScale, setPageScale] = useState(1);
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [previewPage, setPreviewPage] = useState(0);
@@ -61,6 +64,7 @@ export default function ListPage({ params }: Props) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
+  const introNoteRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,6 +83,10 @@ export default function ListPage({ params }: Props) {
   useEffect(() => {
     if (editingNote) setTimeout(() => noteRef.current?.focus(), 30);
   }, [editingNote]);
+
+  useEffect(() => {
+    if (editingIntroNote) setTimeout(() => introNoteRef.current?.focus(), 30);
+  }, [editingIntroNote]);
 
 
   useEffect(() => {
@@ -107,24 +115,29 @@ export default function ListPage({ params }: Props) {
       return;
     }
 
-    if (!measureRef.current || !itemsRef.current) return;
+    if (previewModeChanged) {
+      setPreviewPage(0);
+    }
 
-    setPreviewPage(0);
+    // Skip scale computation on intro page — items aren't shown there
+    const currentIsIntroPage = showIntro && previewPage === 0;
+    if (currentIsIntroPage) return;
+
+    if (!measureRef.current || !itemsRef.current) return;
 
     const measuredHeight = measureRef.current.scrollHeight;
     const rect = itemsRef.current.getBoundingClientRect();
-    // Reserve space for the nav bar (bottom-6=24px + h-9=36px + iOS safe area ~34px + margin)
-    const willHavePagination = itemCount > itemsPerPage;
-    const bottomReserve = willHavePagination ? 72 : 16;
+    const itemPageCount = Math.ceil(itemCount / itemsPerPage);
+    const totalPagesCount = showIntro ? itemPageCount + 1 : itemPageCount;
+    const bottomReserve = totalPagesCount > 1 ? 72 : 16;
     const availableHeight = window.innerHeight - rect.top - bottomReserve;
 
     if (measuredHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
-    // Scale so items always fill exactly the available height (shrink or grow as needed)
     const scale = Math.min(1.5, availableHeight / measuredHeight);
     setNaturalHeight(measuredHeight);
     setPageScale(scale);
-  }, [previewMode, list?.items.length, itemsPerPage, list?.note, list?.coverPhoto]);
+  }, [previewMode, list?.items.length, itemsPerPage, list?.note, list?.coverPhoto, showIntro, previewPage]);
 
   if (!list) {
     return (
@@ -152,12 +165,17 @@ export default function ListPage({ params }: Props) {
     displayedItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Pagination
-  const totalPages = previewMode ? Math.ceil(displayedItems.length / itemsPerPage) : 1;
+  // Pagination (intro page = page 0 when showIntro is true, then item pages follow)
+  const itemPageCount = previewMode ? Math.ceil(displayedItems.length / itemsPerPage) : 1;
+  const totalPages = previewMode && showIntro ? itemPageCount + 1 : itemPageCount;
   const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
-  const pageStart = safePage * itemsPerPage;
+  const isIntroPage = previewMode && showIntro && safePage === 0;
+  const itemPageIndex = isIntroPage ? 0 : (showIntro ? safePage - 1 : safePage);
+  const pageStart = itemPageIndex * itemsPerPage;
   const pageEnd = Math.min(pageStart + itemsPerPage, displayedItems.length);
-  const previewItems = previewMode ? displayedItems.slice(pageStart, pageEnd) : displayedItems;
+  const previewItems = (previewMode && !isIntroPage) ? displayedItems.slice(pageStart, pageEnd) : displayedItems;
+  // Items used for off-screen scale measurement (always the first item page)
+  const measureItems = displayedItems.slice(0, Math.min(itemsPerPage, displayedItems.length));
 
   function handleTogglePreview() {
     setPreviewMode((v) => !v);
@@ -206,6 +224,20 @@ export default function ListPage({ params }: Props) {
 
   function handleNoteKey(e: React.KeyboardEvent) {
     if (e.key === "Escape") commitNoteEdit();
+  }
+
+  function startIntroNoteEdit() {
+    setIntroNoteValue(list!.introNote ?? "");
+    setEditingIntroNote(true);
+  }
+
+  function commitIntroNoteEdit() {
+    setIntroNote(id, introNoteValue);
+    setEditingIntroNote(false);
+  }
+
+  function handleIntroNoteKey(e: React.KeyboardEvent) {
+    if (e.key === "Escape") commitIntroNoteEdit();
   }
 
   function handleScrollArrow() {
@@ -396,7 +428,7 @@ export default function ListPage({ params }: Props) {
             <span>{backLabel}</span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Items-per-page stepper — only shown in preview mode */}
             {previewMode && (
               <div
@@ -412,19 +444,29 @@ export default function ListPage({ params }: Props) {
                   disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
                   className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
                   aria-label="Fewer items per page"
-                >
-                  −
-                </button>
+                >−</button>
                 <span className="px-1 tabular-nums">{itemsPerPage}</span>
                 <button
                   onClick={() => setItemsPerPage((n) => Math.min(MAX_ITEMS_PER_PAGE, n + 1))}
                   disabled={itemsPerPage >= MAX_ITEMS_PER_PAGE}
                   className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
                   aria-label="More items per page"
-                >
-                  +
-                </button>
+                >+</button>
               </div>
+            )}
+
+            {/* Intro page toggle — only in preview mode */}
+            {previewMode && (
+              <button
+                onClick={() => setShowIntro((v) => !v)}
+                className="text-xs font-medium px-2.5 py-1.5 rounded-full border transition-colors hover:opacity-80"
+                style={
+                  showIntro
+                    ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
+                    : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
+                }
+                aria-label="Toggle intro page"
+              >Intro</button>
             )}
 
             {/* Camera / remove-photo button — only shown in preview mode */}
@@ -432,38 +474,31 @@ export default function ListPage({ params }: Props) {
               list.coverPhoto ? (
                 <button
                   onClick={() => removeListPhoto(id)}
-                  className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors hover:opacity-80"
+                  className="w-8 h-8 flex items-center justify-center rounded-full border text-sm font-semibold transition-colors hover:opacity-80"
                   style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }}
                   aria-label="Remove cover photo"
-                >
-                  <span>✕</span>
-                  <span>Photo</span>
-                </button>
+                  title="Remove photo"
+                >✕</button>
               ) : (
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-8 h-8 flex items-center justify-center rounded-full border text-base transition-colors hover:opacity-70"
                   style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
                   aria-label="Upload cover photo"
-                >
-                  📷
-                </button>
+                >📷</button>
               )
             )}
 
             <button
               onClick={handleTogglePreview}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
+              className="text-xs font-medium px-2.5 py-1.5 rounded-full border transition-colors"
               style={
                 previewMode
                   ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
                   : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
               }
               aria-label="Toggle preview mode"
-            >
-              <span>{previewMode ? "✕" : "▶"}</span>
-              <span>{previewMode ? "Exit Preview" : "Preview"}</span>
-            </button>
+            >{previewMode ? "✕ Exit" : "▶ Preview"}</button>
 
           </div>
         </div>
@@ -475,8 +510,77 @@ export default function ListPage({ params }: Props) {
           </div>
         )}
 
-        {previewMode ? (
-          /* Preview mode: title + avg badge centered and inline */
+        {isIntroPage ? (
+          /* Intro page — vertically centered, title → rating → photo → intro note */
+          <div
+            className="flex flex-col items-center justify-center gap-5 py-4"
+            style={{ minHeight: "calc(100vh - 180px)" }}
+          >
+            <h1 className="text-4xl font-bold text-foreground text-center px-2 leading-tight">
+              {list.title}
+            </h1>
+
+            {avgColors && avg !== null && (
+              <div
+                className="inline-flex items-baseline gap-1.5 px-4 py-1.5 rounded-xl"
+                style={{ backgroundColor: avgColors.bg }}
+              >
+                <span className="text-2xl font-bold" style={{ color: avgColors.ratingColor }}>
+                  {fmt(avg)}
+                </span>
+                <span className="text-sm font-medium" style={{ color: avgColors.rankColor }}>
+                  avg
+                </span>
+              </div>
+            )}
+
+            {list.coverPhoto && (
+              <img
+                src={list.coverPhoto}
+                alt="Cover"
+                className="rounded-3xl object-cover shadow-lg"
+                style={{ width: 260, height: 260 }}
+              />
+            )}
+
+            {/* Intro-page-only note */}
+            {editingIntroNote ? (
+              <div className="w-full flex flex-col gap-2">
+                <textarea
+                  ref={introNoteRef}
+                  value={introNoteValue}
+                  onChange={(e) => setIntroNoteValue(e.target.value)}
+                  onKeyDown={handleIntroNoteKey}
+                  placeholder="Add an intro note…"
+                  rows={3}
+                  className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
+                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.8)" }}
+                />
+                <div className="flex justify-center">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); commitIntroNoteEdit(); }}
+                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                  >Done</button>
+                </div>
+              </div>
+            ) : list.introNote ? (
+              <p
+                className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
+                style={{ color: "hsl(var(--foreground) / 0.8)" }}
+                onClick={startIntroNoteEdit}
+                title="Tap to edit intro note"
+              >{list.introNote}</p>
+            ) : (
+              <button
+                onClick={startIntroNoteEdit}
+                className="text-sm font-medium transition-opacity hover:opacity-60"
+                style={{ color: "hsl(var(--foreground) / 0.4)" }}
+              >+ intro note</button>
+            )}
+          </div>
+        ) : previewMode ? (
+          /* Item-page preview header: compact title + avg */
           <div className="flex items-baseline justify-center gap-3 mb-2 flex-wrap">
             <h1 className="text-3xl font-bold text-foreground text-center">
               {list.title}
@@ -570,12 +674,13 @@ export default function ListPage({ params }: Props) {
               onKeyDown={handleDescKey}
               placeholder="Add a description…"
               rows={3}
-              className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground mb-2 placeholder:text-muted-foreground/50"
-              style={{ borderColor: "hsl(var(--border))" }}
+              className="w-full text-sm bg-transparent border-b outline-none resize-none mb-2 placeholder:text-muted-foreground/50"
+              style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.72)" }}
             />
           ) : (
             <p
-              className="text-muted-foreground text-sm mb-2 cursor-pointer hover:opacity-70 transition-opacity min-h-[1.5rem] whitespace-pre-wrap"
+              className="text-sm mb-2 cursor-pointer hover:opacity-70 transition-opacity min-h-[1.5rem] whitespace-pre-wrap"
+              style={{ color: "hsl(var(--foreground) / 0.72)" }}
               onClick={startDescEdit}
               title="Tap to add description"
             >
@@ -585,7 +690,7 @@ export default function ListPage({ params }: Props) {
         )}
 
         {!previewMode && (
-          <p className="text-muted-foreground text-sm mb-6">
+          <p className="text-sm mb-6" style={{ color: "hsl(var(--foreground) / 0.55)" }}>
             {list.items.length === 0
               ? "No items yet"
               : `${list.items.length} item${list.items.length === 1 ? "" : "s"} · ${sortLabel(currentSortMode)}`}
@@ -601,8 +706,8 @@ export default function ListPage({ params }: Props) {
           onChange={handlePhotoChange}
         />
 
-        {/* Cover photo — shown in preview mode between header and items */}
-        {previewMode && list.coverPhoto && (
+        {/* Cover photo — shown on item pages only when intro is disabled */}
+        {previewMode && !showIntro && list.coverPhoto && (
           <div className="flex justify-center mb-3">
             <img
               src={list.coverPhoto}
@@ -613,10 +718,10 @@ export default function ListPage({ params }: Props) {
           </div>
         )}
 
-        {previewMode && !list.coverPhoto && <div className="mb-2" />}
+        {previewMode && !showIntro && !list.coverPhoto && <div className="mb-2" />}
 
-        {/* Note section — shown in preview mode above items */}
-        {previewMode && (
+        {/* Note section — shown on item pages in preview mode (not on intro page) */}
+        {previewMode && !isIntroPage && (
           <div className="mb-3">
             {editingNote ? (
               <div className="flex flex-col gap-2">
@@ -649,7 +754,7 @@ export default function ListPage({ params }: Props) {
             ) : list.note ? (
               <p
                 className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
-                style={{ color: "hsl(var(--muted-foreground))" }}
+                style={{ color: "hsl(var(--foreground) / 0.75)" }}
                 onClick={startNoteEdit}
                 title="Tap to edit note"
               >
@@ -660,7 +765,7 @@ export default function ListPage({ params }: Props) {
                 <button
                   onClick={startNoteEdit}
                   className="text-sm font-medium transition-opacity hover:opacity-60"
-                  style={{ color: "hsl(var(--muted-foreground) / 45%)" }}
+                  style={{ color: "hsl(var(--foreground) / 0.38)" }}
                 >
                   + note
                 </button>
@@ -669,14 +774,14 @@ export default function ListPage({ params }: Props) {
           </div>
         )}
 
-        {displayedItems.length === 0 ? (
+        {!isIntroPage && (displayedItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
             <div className="text-5xl">🎯</div>
             <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
           </div>
         ) : (
           <>
-            {/* Off-screen measurement div — has up to MAX_PREVIEW_ITEMS at natural scale */}
+            {/* Off-screen measurement div — always measures the first item page */}
             {previewMode && (
               <div
                 ref={measureRef}
@@ -684,7 +789,7 @@ export default function ListPage({ params }: Props) {
                 style={{ position: "absolute", top: -9999, left: 0, right: 0, visibility: "hidden", pointerEvents: "none" }}
                 aria-hidden="true"
               >
-                {previewItems.map((item, index) => (
+                {measureItems.map((item, index) => (
                   <ItemRow
                     key={`measure-${item.id}`}
                     item={item}
@@ -724,9 +829,8 @@ export default function ListPage({ params }: Props) {
                 ))}
               </div>
             </div>
-
           </>
-        )}
+        ))}
         {/* Note section — below items, hidden in preview mode */}
         {!previewMode && (
           <div className="mt-6">
@@ -739,8 +843,8 @@ export default function ListPage({ params }: Props) {
                   onKeyDown={handleNoteKey}
                   placeholder="Add a note…"
                   rows={4}
-                  className="w-full text-sm bg-transparent border-b outline-none resize-none text-muted-foreground placeholder:text-muted-foreground/50"
-                  style={{ borderColor: "hsl(var(--border))" }}
+                  className="w-full text-sm bg-transparent border-b outline-none resize-none placeholder:text-muted-foreground/50"
+                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.75)" }}
                 />
                 <div className="flex justify-start">
                   <button
@@ -757,7 +861,8 @@ export default function ListPage({ params }: Props) {
               </div>
             ) : list.note ? (
               <p
-                className="text-muted-foreground text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap"
+                className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap"
+                style={{ color: "hsl(var(--foreground) / 0.75)" }}
                 onClick={startNoteEdit}
                 title="Tap to edit note"
               >
@@ -767,7 +872,7 @@ export default function ListPage({ params }: Props) {
               <button
                 onClick={startNoteEdit}
                 className="text-sm font-medium transition-opacity hover:opacity-60"
-                style={{ color: "hsl(var(--muted-foreground) / 45%)" }}
+                style={{ color: "hsl(var(--foreground) / 0.38)" }}
               >
                 + note
               </button>

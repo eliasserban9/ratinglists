@@ -14,6 +14,7 @@ export interface RatedList {
   title: string;
   description?: string;
   note?: string;
+  introNote?: string;
   bgHue?: number;
   bgLightness?: number;
   coverPhoto?: string;
@@ -426,6 +427,13 @@ export function useLists() {
     [data, persist]
   );
 
+  const setIntroNote = useCallback(
+    (listId: string, introNote: string) => {
+      persist({ ...data, lists: data.lists.map((l) => (l.id === listId ? { ...l, introNote } : l)) });
+    },
+    [data, persist]
+  );
+
   const setListBgColor = useCallback(
     (listId: string, hue: number | null) => {
       persist({
@@ -552,6 +560,7 @@ export function useLists() {
     renameList,
     setListDescription,
     setListNote,
+    setIntroNote,
     setListBgColor,
     setListBgLightness,
     setListCoverPhoto,
