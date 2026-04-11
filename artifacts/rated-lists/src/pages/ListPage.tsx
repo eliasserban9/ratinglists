@@ -123,20 +123,21 @@ export default function ListPage({ params }: Props) {
     const currentIsIntroPage = showIntro && previewPage === 0;
     if (currentIsIntroPage) return;
 
-    // When intro is enabled, item pages use a fixed 15% scale and are centered
-    if (showIntro) {
-      setPageScale(1.15);
-      return;
-    }
-
     if (!measureRef.current || !itemsRef.current) return;
 
     const measuredHeight = measureRef.current.scrollHeight;
-    const rect = itemsRef.current.getBoundingClientRect();
     const itemPageCount = Math.ceil(itemCount / itemsPerPage);
     const totalPagesCount = showIntro ? itemPageCount + 1 : itemPageCount;
     const bottomReserve = totalPagesCount > 1 ? 72 : 16;
-    const availableHeight = window.innerHeight - rect.top - bottomReserve;
+
+    let availableHeight: number;
+    if (showIntro) {
+      // Cap to 75% of screen height when intro mode is on
+      availableHeight = window.innerHeight * 0.75 - bottomReserve;
+    } else {
+      const rect = itemsRef.current.getBoundingClientRect();
+      availableHeight = window.innerHeight - rect.top - bottomReserve;
+    }
 
     if (measuredHeight <= 0 || availableHeight <= 0 || itemCount <= 0) return;
 
@@ -808,46 +809,37 @@ export default function ListPage({ params }: Props) {
               </div>
             )}
 
-            {/* Visible items area */}
+            {/* Visible items area — centering wrapper when intro is on */}
             <div
               className={showIntro && previewMode ? "flex flex-col items-stretch justify-center" : ""}
-              style={
-                showIntro && previewMode
-                  ? { minHeight: "calc(100vh - 210px)" }
-                  : previewMode && naturalHeight > 0
-                  ? { height: naturalHeight * pageScale, overflow: "hidden" }
-                  : undefined
-              }
+              style={showIntro && previewMode ? { minHeight: "calc(100vh - 210px)" } : undefined}
             >
-              <div
-                ref={itemsRef}
-                className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
-                style={
-                  showIntro && previewMode
-                    ? undefined
-                    : previewMode
-                    ? { transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" }
-                    : undefined
-                }
-              >
-                {previewItems.map((item, index) => (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    rank={pageStart + index + 1}
-                    onRatingChange={previewMode ? () => {} : (rating) => updateItemRating(id, item.id, rating)}
-                    onRename={previewMode ? undefined : (name) => renameItem(id, item.id, name)}
-                    onDelete={() => deleteItem(id, item.id)}
-                    showMoveBar={!previewMode && currentSortMode === "added"}
-                    onMoveUp={() => moveItem(id, item.id, "up")}
-                    onMoveDown={() => moveItem(id, item.id, "down")}
-                    isFirst={index === 0}
-                    isLast={index === previewItems.length - 1}
-                    hideDelete={previewMode}
-                    textScale={previewMode ? (showIntro ? 1.15 : 1) : 0.85}
-                    preview={previewMode}
-                  />
-                ))}
+              {/* Height constrainer + scale */}
+              <div style={previewMode && naturalHeight > 0 ? { height: naturalHeight * pageScale, overflow: "hidden" } : undefined}>
+                <div
+                  ref={itemsRef}
+                  className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
+                  style={previewMode ? { transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" } : undefined}
+                >
+                  {previewItems.map((item, index) => (
+                    <ItemRow
+                      key={item.id}
+                      item={item}
+                      rank={pageStart + index + 1}
+                      onRatingChange={previewMode ? () => {} : (rating) => updateItemRating(id, item.id, rating)}
+                      onRename={previewMode ? undefined : (name) => renameItem(id, item.id, name)}
+                      onDelete={() => deleteItem(id, item.id)}
+                      showMoveBar={!previewMode && currentSortMode === "added"}
+                      onMoveUp={() => moveItem(id, item.id, "up")}
+                      onMoveDown={() => moveItem(id, item.id, "down")}
+                      isFirst={index === 0}
+                      isLast={index === previewItems.length - 1}
+                      hideDelete={previewMode}
+                      textScale={previewMode ? 1 : 0.85}
+                      preview={previewMode}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </>
