@@ -518,73 +518,81 @@ export default function ListPage({ params }: Props) {
         )}
 
         {isIntroPage ? (
-          /* Intro page — vertically centered, title → rating → photo → intro note */
+          /* Intro page — title+rating top, photo pinned to center, note below */
           <div
-            className="flex flex-col items-center justify-center gap-5 py-4"
+            className="flex flex-col items-center"
             style={{ minHeight: "calc(100vh - 180px)" }}
           >
-            <h1 className="text-4xl font-bold text-foreground text-center px-2 leading-tight">
-              {list.title}
-            </h1>
+            {/* Top: title + rating */}
+            <div className="flex flex-col items-center gap-4 pt-6 pb-2 w-full">
+              <h1 className="text-4xl font-bold text-foreground text-center px-2 leading-tight">
+                {list.title}
+              </h1>
 
-            {avgColors && avg !== null && (
-              <div
-                className="inline-flex items-baseline gap-1.5 px-4 py-1.5 rounded-xl"
-                style={{ backgroundColor: avgColors.bg }}
-              >
-                <span className="text-2xl font-bold" style={{ color: avgColors.ratingColor }}>
-                  {fmt(avg)}
-                </span>
-                <span className="text-sm font-medium" style={{ color: avgColors.rankColor }}>
-                  avg
-                </span>
-              </div>
-            )}
-
-            {list.coverPhoto && (
-              <img
-                src={list.coverPhoto}
-                alt="Cover"
-                className="rounded-3xl object-cover shadow-lg"
-                style={{ width: 320, height: 320 }}
-              />
-            )}
-
-            {/* Intro-page-only note */}
-            {editingIntroNote ? (
-              <div className="w-full flex flex-col gap-2">
-                <textarea
-                  ref={introNoteRef}
-                  value={introNoteValue}
-                  onChange={(e) => setIntroNoteValue(e.target.value)}
-                  onKeyDown={handleIntroNoteKey}
-                  placeholder="Add an intro note…"
-                  rows={3}
-                  className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
-                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.8)" }}
-                />
-                <div className="flex justify-center">
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); commitIntroNoteEdit(); }}
-                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
-                  >Done</button>
+              {avgColors && avg !== null && (
+                <div
+                  className="inline-flex items-baseline gap-1.5 px-4 py-1.5 rounded-xl"
+                  style={{ backgroundColor: avgColors.bg }}
+                >
+                  <span className="text-2xl font-bold" style={{ color: avgColors.ratingColor }}>
+                    {fmt(avg)}
+                  </span>
+                  <span className="text-sm font-medium" style={{ color: avgColors.rankColor }}>
+                    avg
+                  </span>
                 </div>
-              </div>
-            ) : list.introNote ? (
-              <p
-                className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
-                style={{ color: "hsl(var(--foreground) / 0.8)" }}
-                onClick={startIntroNoteEdit}
-                title="Tap to edit intro note"
-              >{list.introNote}</p>
-            ) : (
-              <button
-                onClick={startIntroNoteEdit}
-                className="text-sm font-medium transition-opacity hover:opacity-60"
-                style={{ color: "hsl(var(--foreground) / 0.4)" }}
-              >+ intro note</button>
-            )}
+              )}
+            </div>
+
+            {/* Middle: photo pinned to vertical center of remaining space */}
+            <div className="flex-1 flex items-center justify-center">
+              {list.coverPhoto && (
+                <img
+                  src={list.coverPhoto}
+                  alt="Cover"
+                  className="rounded-3xl object-cover shadow-lg"
+                  style={{ width: 320, height: 320 }}
+                />
+              )}
+            </div>
+
+            {/* Bottom: intro note */}
+            <div className="flex flex-col items-center w-full pt-2 pb-6">
+              {editingIntroNote ? (
+                <div className="w-full flex flex-col gap-2">
+                  <textarea
+                    ref={introNoteRef}
+                    value={introNoteValue}
+                    onChange={(e) => setIntroNoteValue(e.target.value)}
+                    onKeyDown={handleIntroNoteKey}
+                    placeholder="Add an intro note…"
+                    rows={3}
+                    className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
+                    style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.92)" }}
+                  />
+                  <div className="flex justify-center">
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); commitIntroNoteEdit(); }}
+                      className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                    >Done</button>
+                  </div>
+                </div>
+              ) : list.introNote ? (
+                <p
+                  className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
+                  style={{ color: "hsl(var(--foreground) / 0.92)" }}
+                  onClick={startIntroNoteEdit}
+                  title="Tap to edit intro note"
+                >{list.introNote}</p>
+              ) : (
+                <button
+                  onClick={startIntroNoteEdit}
+                  className="text-sm font-medium transition-opacity hover:opacity-60"
+                  style={{ color: "hsl(var(--foreground) / 0.65)" }}
+                >+ intro note</button>
+              )}
+            </div>
           </div>
         ) : previewMode ? (
           /* Item-page preview header: compact title + avg */
@@ -682,12 +690,12 @@ export default function ListPage({ params }: Props) {
               placeholder="Add a description…"
               rows={3}
               className="w-full text-sm bg-transparent border-b outline-none resize-none mb-2 placeholder:text-muted-foreground/50"
-              style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.72)" }}
+              style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.90)" }}
             />
           ) : (
             <p
               className="text-sm mb-2 cursor-pointer hover:opacity-70 transition-opacity min-h-[1.5rem] whitespace-pre-wrap"
-              style={{ color: "hsl(var(--foreground) / 0.72)" }}
+              style={{ color: "hsl(var(--foreground) / 0.90)" }}
               onClick={startDescEdit}
               title="Tap to add description"
             >
@@ -697,7 +705,7 @@ export default function ListPage({ params }: Props) {
         )}
 
         {!previewMode && (
-          <p className="text-sm mb-6" style={{ color: "hsl(var(--foreground) / 0.55)" }}>
+          <p className="text-sm mb-6" style={{ color: "hsl(var(--foreground) / 0.78)" }}>
             {list.items.length === 0
               ? "No items yet"
               : `${list.items.length} item${list.items.length === 1 ? "" : "s"} · ${sortLabel(currentSortMode)}`}
@@ -761,7 +769,7 @@ export default function ListPage({ params }: Props) {
             ) : list.note ? (
               <p
                 className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
-                style={{ color: "hsl(var(--foreground) / 0.75)" }}
+                style={{ color: "hsl(var(--foreground) / 0.90)" }}
                 onClick={startNoteEdit}
                 title="Tap to edit note"
               >
@@ -772,7 +780,7 @@ export default function ListPage({ params }: Props) {
                 <button
                   onClick={startNoteEdit}
                   className="text-sm font-medium transition-opacity hover:opacity-60"
-                  style={{ color: "hsl(var(--foreground) / 0.38)" }}
+                  style={{ color: "hsl(var(--foreground) / 0.65)" }}
                 >
                   + note
                 </button>
@@ -811,8 +819,8 @@ export default function ListPage({ params }: Props) {
 
             {/* Visible items area — centering wrapper when intro is on */}
             <div
-              className={showIntro && previewMode ? "flex flex-col items-stretch justify-center" : ""}
-              style={showIntro && previewMode ? { minHeight: "calc(100vh - 210px)" } : undefined}
+              className={showIntro && previewMode ? "flex flex-col items-stretch justify-start" : ""}
+              style={showIntro && previewMode ? { minHeight: "calc(100vh - 210px)", paddingTop: "5%" } : undefined}
             >
               {/* Height constrainer + scale */}
               <div style={previewMode && naturalHeight > 0 ? { height: naturalHeight * pageScale, overflow: "hidden" } : undefined}>
@@ -857,7 +865,7 @@ export default function ListPage({ params }: Props) {
                   placeholder="Add a note…"
                   rows={4}
                   className="w-full text-sm bg-transparent border-b outline-none resize-none placeholder:text-muted-foreground/50"
-                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.75)" }}
+                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.90)" }}
                 />
                 <div className="flex justify-start">
                   <button
@@ -875,7 +883,7 @@ export default function ListPage({ params }: Props) {
             ) : list.note ? (
               <p
                 className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap"
-                style={{ color: "hsl(var(--foreground) / 0.75)" }}
+                style={{ color: "hsl(var(--foreground) / 0.90)" }}
                 onClick={startNoteEdit}
                 title="Tap to edit note"
               >
@@ -885,7 +893,7 @@ export default function ListPage({ params }: Props) {
               <button
                 onClick={startNoteEdit}
                 className="text-sm font-medium transition-opacity hover:opacity-60"
-                style={{ color: "hsl(var(--foreground) / 0.38)" }}
+                style={{ color: "hsl(var(--foreground) / 0.65)" }}
               >
                 + note
               </button>
