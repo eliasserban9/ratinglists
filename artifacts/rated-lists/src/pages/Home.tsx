@@ -18,6 +18,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("added");
+  const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
   const { signOut } = useClerk();
@@ -181,7 +182,7 @@ export default function Home() {
             ⚙️
           </button>
         </div>
-        <div className="flex items-center justify-between mt-1 mb-8">
+        <div className="flex items-center justify-between mt-1 mb-5">
           <p className="text-muted-foreground text-sm">Rate and rank anything you love</p>
           {hasContent && (
             <div className="relative">
@@ -207,12 +208,59 @@ export default function Home() {
           )}
         </div>
 
+        {hasContent && (
+          <div className="relative mb-5">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{ color: "hsl(var(--muted-foreground))" }}>🔍</span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search lists…"
+              className="w-full rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none border"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--foreground))",
+                borderColor: "hsl(var(--border))",
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm transition-opacity hover:opacity-70"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+                aria-label="Clear search"
+              >✕</button>
+            )}
+          </div>
+        )}
+
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center mt-24 gap-3 text-center">
             <div className="text-5xl">📝</div>
             <p className="text-muted-foreground text-base">No lists yet. Tap + to create one.</p>
           </div>
-        ) : (
+        ) : searchQuery.trim() ? (() => {
+          const q = searchQuery.trim().toLowerCase();
+          const matched = lists.filter((l) => l.title.toLowerCase().includes(q));
+          return matched.length === 0 ? (
+            <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
+              <div className="text-4xl">🔍</div>
+              <p className="text-muted-foreground text-sm">No lists matching "{searchQuery}"</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {matched.map((list) => (
+                <ListCard
+                  key={list.id}
+                  list={list}
+                  onClick={() => navigate(`/list/${list.id}`)}
+                  onDelete={() => deleteList(list.id)}
+                  onColorModeChange={(value) => setColorMode(list.id, value)}
+                />
+              ))}
+            </div>
+          );
+        })() : (
           <div className="flex flex-col gap-3">
             {allItems.map(({ kind, item }) => {
               if (kind === "category") {
@@ -237,7 +285,6 @@ export default function Home() {
                   />
                 );
               }
-              // Standalone item — render as a colored row
               return (
                 <ItemRow
                   key={item.id}

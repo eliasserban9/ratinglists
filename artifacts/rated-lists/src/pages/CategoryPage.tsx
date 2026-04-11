@@ -31,6 +31,7 @@ export default function CategoryPage({ params }: Props) {
   const [open, setOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
   const category = getCategory(id);
   const rawLists = getListsForCategory(id);
@@ -142,30 +143,66 @@ export default function CategoryPage({ params }: Props) {
           </div>
         </div>
 
-        <p className="text-muted-foreground text-sm mb-8 pl-12">
+        <p className="text-muted-foreground text-sm mb-5 pl-12">
           {lists.length === 0
             ? "No lists yet"
             : `${lists.length} list${lists.length === 1 ? "" : "s"}`}
         </p>
+
+        {lists.length > 0 && (
+          <div className="relative mb-5">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{ color: "hsl(var(--muted-foreground))" }}>🔍</span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search lists…"
+              className="w-full rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none border"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--foreground))",
+                borderColor: "hsl(var(--border))",
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm transition-opacity hover:opacity-70"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+                aria-label="Clear search"
+              >✕</button>
+            )}
+          </div>
+        )}
 
         {lists.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
             <div className="text-5xl">📋</div>
             <p className="text-muted-foreground text-base">Tap + to add your first list.</p>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {lists.map((list) => (
-              <ListCard
-                key={list.id}
-                list={list}
-                onClick={() => navigate(`/list/${list.id}`)}
-                onDelete={() => deleteList(list.id)}
-                onColorModeChange={(value) => setColorMode(list.id, value)}
-              />
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          const filtered = searchQuery.trim()
+            ? lists.filter((l) => l.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+            : lists;
+          return filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
+              <div className="text-4xl">🔍</div>
+              <p className="text-muted-foreground text-sm">No lists matching "{searchQuery}"</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filtered.map((list) => (
+                <ListCard
+                  key={list.id}
+                  list={list}
+                  onClick={() => navigate(`/list/${list.id}`)}
+                  onDelete={() => deleteList(list.id)}
+                  onColorModeChange={(value) => setColorMode(list.id, value)}
+                />
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       <button
