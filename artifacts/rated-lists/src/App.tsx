@@ -16,8 +16,6 @@ const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-// Check for cached data once at startup so we can skip the Clerk loading screen
-const hasCachedData = !!localStorage.getItem("rated-lists-server-cache");
 
 if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
@@ -66,10 +64,11 @@ function SignUpPage() {
 
 function HomeRoute() {
   const { isLoaded, isSignedIn } = useAuth();
-  // While Clerk is still loading: show Home immediately if we have cached data,
-  // otherwise show LandingPage (avoids blank screen either way)
-  if (!isLoaded) return hasCachedData ? <Home /> : <LandingPage />;
-  return isSignedIn ? <Home /> : <LandingPage />;
+  // Only show LandingPage once Clerk has fully confirmed the user is signed out.
+  // While loading, always render Home — this eliminates the flash of sign-in screen
+  // for returning users whose session just hasn't been verified yet.
+  if (isLoaded && !isSignedIn) return <LandingPage />;
+  return <Home />;
 }
 
 function ProtectedListPage({ params }: { params: { id: string } }) {
