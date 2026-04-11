@@ -132,8 +132,8 @@ export default function ListPage({ params }: Props) {
 
     let availableHeight: number;
     if (showIntro) {
-      // Cap to 75% of screen height when intro mode is on
-      availableHeight = window.innerHeight * 0.75 - bottomReserve;
+      // Cap to 62% of screen height when intro mode is on — leaves space for bottom nav
+      availableHeight = window.innerHeight * 0.62 - bottomReserve;
     } else {
       const rect = itemsRef.current.getBoundingClientRect();
       availableHeight = window.innerHeight - rect.top - bottomReserve;
@@ -546,7 +546,7 @@ export default function ListPage({ params }: Props) {
                 src={list.coverPhoto}
                 alt="Cover"
                 className="rounded-3xl object-cover shadow-lg"
-                style={{ width: 260, height: 260 }}
+                style={{ width: 320, height: 320 }}
               />
             )}
 
