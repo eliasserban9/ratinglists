@@ -123,6 +123,12 @@ export default function ListPage({ params }: Props) {
     const currentIsIntroPage = showIntro && previewPage === 0;
     if (currentIsIntroPage) return;
 
+    // When intro is enabled, item pages use a fixed 15% scale and are centered
+    if (showIntro) {
+      setPageScale(1.15);
+      return;
+    }
+
     if (!measureRef.current || !itemsRef.current) return;
 
     const measuredHeight = measureRef.current.scrollHeight;
@@ -802,12 +808,27 @@ export default function ListPage({ params }: Props) {
               </div>
             )}
 
-            {/* Visible items area — use transform:scale for consistent cross-platform scaling */}
-            <div style={previewMode && naturalHeight > 0 ? { height: naturalHeight * pageScale, overflow: "hidden" } : undefined}>
+            {/* Visible items area */}
+            <div
+              className={showIntro && previewMode ? "flex flex-col items-stretch justify-center" : ""}
+              style={
+                showIntro && previewMode
+                  ? { minHeight: "calc(100vh - 210px)" }
+                  : previewMode && naturalHeight > 0
+                  ? { height: naturalHeight * pageScale, overflow: "hidden" }
+                  : undefined
+              }
+            >
               <div
                 ref={itemsRef}
                 className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
-                style={previewMode ? { transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" } : undefined}
+                style={
+                  showIntro && previewMode
+                    ? undefined
+                    : previewMode
+                    ? { transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" }
+                    : undefined
+                }
               >
                 {previewItems.map((item, index) => (
                   <ItemRow
@@ -823,7 +844,7 @@ export default function ListPage({ params }: Props) {
                     isFirst={index === 0}
                     isLast={index === previewItems.length - 1}
                     hideDelete={previewMode}
-                    textScale={previewMode ? 1 : 0.85}
+                    textScale={previewMode ? (showIntro ? 1.15 : 1) : 0.85}
                     preview={previewMode}
                   />
                 ))}
