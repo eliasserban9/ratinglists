@@ -9,6 +9,7 @@ import { ItemRow } from "@/components/ItemRow";
 import { CreateTypeDialog } from "@/components/CreateTypeDialog";
 import { SettingsSheet } from "@/components/SettingsSheet";
 import { TrashModal } from "@/components/TrashModal";
+import { CopyToListModal } from "@/components/CopyToListModal";
 import type { SortMode } from "@/hooks/useLists";
 
 export default function Home() {
@@ -18,6 +19,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("added");
+  const [copySourceListId, setCopySourceListId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
@@ -39,6 +41,8 @@ export default function Home() {
     renameStandaloneItem,
     getAllData,
     importData,
+    copyItemsToLists,
+    allLists,
   } = useLists();
   const [, navigate] = useLocation();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -256,6 +260,7 @@ export default function Home() {
                   onClick={() => navigate(`/list/${list.id}`)}
                   onDelete={() => deleteList(list.id)}
                   onColorModeChange={(value) => setColorMode(list.id, value)}
+                  onAddToList={() => setCopySourceListId(list.id)}
                 />
               ))}
             </div>
@@ -282,6 +287,7 @@ export default function Home() {
                     onClick={() => navigate(`/list/${item.id}`)}
                     onDelete={() => deleteList(item.id)}
                     onColorModeChange={(value) => setColorMode(item.id, value)}
+                    onAddToList={() => setCopySourceListId(item.id)}
                   />
                 );
               }
@@ -318,6 +324,22 @@ export default function Home() {
       )}
 
       <TrashModal open={trashOpen} onClose={() => setTrashOpen(false)} />
+      {copySourceListId && (() => {
+        const src = allLists.find((l) => l.id === copySourceListId);
+        if (!src) return null;
+        return (
+          <CopyToListModal
+            sourceList={src}
+            allLists={allLists}
+            categories={categories}
+            onClose={() => setCopySourceListId(null)}
+            onConfirm={(targetIds) => {
+              copyItemsToLists(copySourceListId, targetIds);
+              showToast(`Copied to ${targetIds.length} list${targetIds.length === 1 ? "" : "s"}`, true);
+            }}
+          />
+        );
+      })()}
       <CreateTypeDialog open={open} onClose={() => setOpen(false)} onCreate={handleCreate} />
       <SettingsSheet
         open={settingsOpen}

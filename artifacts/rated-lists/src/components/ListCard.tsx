@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { RatedList, ListItem } from "@/hooks/useLists";
 import { ratingToColor } from "@/lib/ratingColor";
 
@@ -7,6 +7,7 @@ interface Props {
   onClick: () => void;
   onDelete: () => void;
   onColorModeChange: (value: boolean) => void;
+  onAddToList: () => void;
   scale?: number;
 }
 
@@ -19,8 +20,10 @@ function averageColor(items: ListItem[]): string {
   return ratingToColor(averageRating(items), 26);
 }
 
-export function ListCard({ list, onClick, onDelete, onColorModeChange, scale = 1 }: Props) {
+export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToList, scale = 1 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const colored = list.colorMode && list.items.length > 0;
   const bgColor = colored ? averageColor(list.items) : undefined;
@@ -28,6 +31,17 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, scale = 1
   const avg = list.items.length > 0 ? averageRating(list.items) : null;
   const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
   const ratingColor = avg !== null ? ratingToColor(avg) : null;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [menuOpen]);
 
   function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
@@ -42,6 +56,17 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, scale = 1
   function handleColorToggle(e: React.ChangeEvent<HTMLSelectElement>) {
     e.stopPropagation();
     onColorModeChange(e.target.value === "color");
+  }
+
+  function handleMenuToggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    setMenuOpen((v) => !v);
+  }
+
+  function handleAddToList(e: React.MouseEvent) {
+    e.stopPropagation();
+    setMenuOpen(false);
+    onAddToList();
   }
 
   return (
@@ -125,6 +150,41 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, scale = 1
           >
             {confirmDelete ? "Sure?" : "✕"}
           </button>
+
+          {/* ⋮ options menu */}
+          <div ref={menuRef} className="relative">
+            <button
+              onClick={handleMenuToggle}
+              className="w-6 h-6 flex items-center justify-center rounded-lg text-sm font-bold leading-none transition-opacity hover:opacity-70"
+              style={{
+                color: colored ? "rgba(255,255,255,0.55)" : "hsl(var(--muted-foreground))",
+                letterSpacing: "0.02em",
+              }}
+              aria-label="More options"
+            >
+              ⋮
+            </button>
+
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-8 z-30 min-w-[140px] rounded-xl overflow-hidden shadow-lg border"
+                style={{
+                  backgroundColor: "hsl(var(--popover))",
+                  borderColor: "hsl(var(--popover-border))",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={handleAddToList}
+                  className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-left transition-colors hover:bg-muted"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  <span className="text-base leading-none">⊕</span>
+                  <span>Add to list</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -546,6 +546,25 @@ export function useLists() {
     [queryClient]
   );
 
+  const copyItemsToLists = useCallback(
+    (sourceListId: string, targetListIds: string[]) => {
+      const source = data.lists.find((l) => l.id === sourceListId);
+      if (!source || targetListIds.length === 0) return;
+      const now = Date.now();
+      const updatedLists = data.lists.map((list) => {
+        if (!targetListIds.includes(list.id)) return list;
+        const copied = source.items.map((item) => ({
+          id: uid(),
+          name: item.name,
+          rating: item.rating,
+        }));
+        return { ...list, items: [...list.items, ...copied], updatedAt: now };
+      });
+      persist({ ...data, lists: updatedLists });
+    },
+    [data, persist]
+  );
+
   return {
     loading: isLoading,
     lists: topLevelLists,
@@ -586,5 +605,7 @@ export function useLists() {
     renameStandaloneItem,
     getAllData,
     importData,
+    copyItemsToLists,
+    allLists: data.lists,
   };
 }
