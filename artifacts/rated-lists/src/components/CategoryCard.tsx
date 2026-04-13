@@ -25,41 +25,50 @@ export function CategoryCard({ category, lists, onClick, onDelete, scale = 1 }: 
   return (
     <div
       onClick={onClick}
-      className="relative bg-card border border-card-border cursor-pointer active:scale-[.99] transition-transform overflow-hidden"
-      style={{ borderRadius: "var(--radius)", zoom: `${Math.round(scale * 100)}%` }}
+      className="relative bg-card border border-card-border rounded-2xl p-4 cursor-pointer active:scale-[.98] transition-transform hover:shadow-sm"
+      style={{ zoom: `${Math.round(scale * 100)}%` }}
     >
-      {/* Subtle left accent bar */}
-      <div className="absolute inset-y-0 left-0 w-[3px] bg-muted-foreground opacity-20" />
-
-      <div className="flex items-center gap-3 py-3.5 pr-3 pl-[1.1rem]">
-        <div className="flex-1 min-w-0">
-          <h2 className="font-semibold text-[15px] leading-snug truncate tracking-tight text-foreground">
-            {category.title}
-          </h2>
-          <p className="text-[11px] mt-0.5 font-medium uppercase tracking-wide text-muted-foreground">
-            {lists.length === 0 ? "No lists" : `${lists.length} list${lists.length === 1 ? "" : "s"}`}
-          </p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <span className="text-2xl shrink-0">📁</span>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-base text-foreground truncate">{category.title}</h2>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              {lists.length === 0
+                ? "Empty category"
+                : `${lists.length} list${lists.length === 1 ? "" : "s"}`}
+            </p>
+          </div>
         </div>
-
-        {/* List count badge */}
-        {lists.length > 0 && (
-          <span className="text-sm font-semibold tabular-nums text-muted-foreground shrink-0 opacity-60">
-            {lists.length}
-          </span>
-        )}
 
         <button
           onClick={handleDelete}
-          className="w-7 h-7 flex items-center justify-center rounded-md text-base font-medium transition-colors shrink-0"
-          style={{
-            color: confirmDelete ? "#fff" : "hsl(var(--muted-foreground))",
-            backgroundColor: confirmDelete ? "rgba(239,68,68,0.62)" : "transparent",
-          }}
+          className={`shrink-0 text-xs px-2 py-1 rounded-lg transition-colors ${
+            confirmDelete
+              ? "bg-destructive text-destructive-foreground"
+              : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          }`}
           aria-label="Delete category"
         >
-          {confirmDelete ? "?" : "×"}
+          {confirmDelete ? "Sure?" : "✕"}
         </button>
       </div>
+
+      {lists.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1 pl-10">
+          {lists.slice(0, 3).map((list) => (
+            <span
+              key={list.id}
+              className="text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5 truncate max-w-[120px]"
+            >
+              {list.title}
+            </span>
+          ))}
+          {lists.length > 3 && (
+            <span className="text-xs text-muted-foreground px-1">+{lists.length - 3}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
