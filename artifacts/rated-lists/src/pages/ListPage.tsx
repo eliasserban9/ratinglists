@@ -177,7 +177,7 @@ export default function ListPage({ params }: Props) {
   const totalPages = previewMode && showIntro ? itemPageCount + 1 : itemPageCount;
   const safePage = Math.min(previewPage, Math.max(0, totalPages - 1));
   const isIntroPage = previewMode && showIntro && safePage === 0;
-  const itemPageIndex = isIntroPage ? 0 : (showIntro ? safePage - 1 : safePage);
+  const itemPageIndex = isIntroPage ? 0 : (previewMode && showIntro ? safePage - 1 : safePage);
   const pageStart = itemPageIndex * itemsPerPage;
   const pageEnd = Math.min(pageStart + itemsPerPage, displayedItems.length);
   const previewItems = (previewMode && !isIntroPage) ? displayedItems.slice(pageStart, pageEnd) : displayedItems;
