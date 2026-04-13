@@ -1,25 +1,18 @@
 import { useState } from "react";
-import type { RatedList, Category } from "@/hooks/useLists";
+import type { RatedList } from "@/hooks/useLists";
 
 interface Props {
   sourceList: RatedList;
   allLists: RatedList[];
-  categories: Category[];
   onClose: () => void;
   onConfirm: (targetIds: string[]) => void;
 }
 
-export function CopyToListModal({ sourceList, allLists, categories, onClose, onConfirm }: Props) {
+export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const targets = allLists.filter((l) => l.id !== sourceList.id);
-
-  const homeLists = targets.filter((l) => !l.categoryId);
-  const catGroups = categories
-    .map((cat) => ({ cat, lists: targets.filter((l) => l.categoryId === cat.id) }))
-    .filter((g) => g.lists.length > 0);
-
-  const hasAny = homeLists.length > 0 || catGroups.length > 0;
+  const hasAny = targets.length > 0;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -77,40 +70,13 @@ export function CopyToListModal({ sourceList, allLists, categories, onClose, onC
             </div>
           ) : (
             <div className="py-2">
-              {/* Home lists */}
-              {homeLists.length > 0 && (
-                <div>
-                  {catGroups.length > 0 && (
-                    <p className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      Home
-                    </p>
-                  )}
-                  {homeLists.map((list) => (
-                    <ListRow
-                      key={list.id}
-                      list={list}
-                      checked={selected.has(list.id)}
-                      onToggle={() => toggle(list.id)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Category groups */}
-              {catGroups.map(({ cat, lists }) => (
-                <div key={cat.id}>
-                  <p className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {cat.title}
-                  </p>
-                  {lists.map((list) => (
-                    <ListRow
-                      key={list.id}
-                      list={list}
-                      checked={selected.has(list.id)}
-                      onToggle={() => toggle(list.id)}
-                    />
-                  ))}
-                </div>
+              {targets.map((list) => (
+                <ListRow
+                  key={list.id}
+                  list={list}
+                  checked={selected.has(list.id)}
+                  onToggle={() => toggle(list.id)}
+                />
               ))}
             </div>
           )}

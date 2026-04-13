@@ -331,7 +331,6 @@ export default function Home() {
           <CopyToListModal
             sourceList={src}
             allLists={allLists}
-            categories={categories}
             onClose={() => setCopySourceListId(null)}
             onConfirm={(targetIds) => {
               copyItemsToLists(copySourceListId, targetIds);

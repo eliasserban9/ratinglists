@@ -176,11 +176,10 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
               >
                 <button
                   onClick={handleAddToList}
-                  className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-left transition-colors hover:bg-muted"
+                  className="w-full px-3.5 py-2.5 text-sm text-left transition-colors hover:bg-muted"
                   style={{ color: "hsl(var(--foreground))" }}
                 >
-                  <span className="text-base leading-none">⊕</span>
-                  <span>Add to list</span>
+                  Add to list
                 </button>
               </div>
             )}
