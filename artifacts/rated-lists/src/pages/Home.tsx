@@ -168,57 +168,62 @@ export default function Home() {
   return (
     <div className="min-h-screen pb-24">
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
-        <div className="flex items-start justify-between mb-1">
-          <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            className="mt-1 w-9 h-9 rounded-full flex items-center justify-center text-lg transition-colors"
-            style={{
-              backgroundColor: "hsl(var(--muted))",
-              color: "hsl(var(--muted-foreground))",
-            }}
-          >
-            ⚙️
-          </button>
-        </div>
-        <div className="flex items-center justify-between mt-1 mb-5">
-          <p className="text-muted-foreground text-sm">Rate and rank anything you love</p>
-          {hasContent && (
-            <div className="relative">
-              <select
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as SortMode)}
-                className="appearance-none text-xs font-medium rounded-lg pl-3 pr-7 py-1.5 border cursor-pointer outline-none"
-                style={{
-                  backgroundColor: "hsl(var(--muted))",
-                  color: "hsl(var(--foreground))",
-                  borderColor: "hsl(var(--border))",
-                }}
-              >
-                <option value="added">As Added</option>
-                <option value="rating">By Rating</option>
-                <option value="name">By Name</option>
-              </select>
-              <span
-                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >▾</span>
-            </div>
-          )}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">My Lists</h1>
+            <p className="text-[12px] font-medium uppercase tracking-widest text-muted-foreground mt-0.5 opacity-70">
+              Rate &amp; rank anything
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasContent && (
+              <div className="relative">
+                <select
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                  className="appearance-none text-xs font-medium rounded-lg pl-3 pr-6 py-1.5 border cursor-pointer outline-none"
+                  style={{
+                    backgroundColor: "hsl(var(--muted))",
+                    color: "hsl(var(--foreground))",
+                    borderColor: "hsl(var(--border))",
+                  }}
+                >
+                  <option value="added">Recent</option>
+                  <option value="rating">Rating</option>
+                  <option value="name">Name</option>
+                </select>
+                <span
+                  className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px]"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
+                >▾</span>
+              </div>
+            )}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Settings"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
+              style={{
+                backgroundColor: "hsl(var(--muted))",
+                color: "hsl(var(--muted-foreground))",
+                letterSpacing: "0.08em",
+              }}
+            >
+              ···
+            </button>
+          </div>
         </div>
 
         {hasContent && (
-          <div className="relative mb-5">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{ color: "hsl(var(--muted-foreground))" }}>🔍</span>
+          <div className="relative mb-4">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none select-none" style={{ color: "hsl(var(--muted-foreground))", opacity: 0.6 }}>⌕</span>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search lists…"
-              className="w-full rounded-xl pl-9 pr-9 py-2.5 text-sm outline-none border"
+              placeholder="Search…"
+              className="w-full rounded-lg pl-8 pr-8 py-2 text-sm outline-none border"
               style={{
-                backgroundColor: "hsl(var(--muted))",
+                backgroundColor: "hsl(var(--card))",
                 color: "hsl(var(--foreground))",
                 borderColor: "hsl(var(--border))",
               }}
@@ -226,18 +231,18 @@ export default function Home() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm transition-opacity hover:opacity-70"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm transition-opacity hover:opacity-70"
                 style={{ color: "hsl(var(--muted-foreground))" }}
                 aria-label="Clear search"
-              >✕</button>
+              >×</button>
             )}
           </div>
         )}
 
         {!hasContent ? (
-          <div className="flex flex-col items-center justify-center mt-24 gap-3 text-center">
-            <div className="text-5xl">📝</div>
-            <p className="text-muted-foreground text-base">No lists yet. Tap + to create one.</p>
+          <div className="flex flex-col items-center justify-center mt-24 gap-2 text-center">
+            <p className="text-foreground font-semibold text-base">Nothing here yet</p>
+            <p className="text-muted-foreground text-sm">Tap + to create your first list.</p>
           </div>
         ) : searchQuery.trim() ? (() => {
           const q = searchQuery.trim().toLowerCase();
