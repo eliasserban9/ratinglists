@@ -30,7 +30,7 @@ export default function ListPage({ params }: Props) {
   const {
     loading: listsLoading,
     getList, getCategory, addItem, updateItemRating, deleteItem,
-    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, setIntroNote, applyListPhoto, removeListPhoto,
+    setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, applyListPhoto, removeListPhoto,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -40,8 +40,6 @@ export default function ListPage({ params }: Props) {
   const [descValue, setDescValue] = useState("");
   const [editingNote, setEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState("");
-  const [editingIntroNote, setEditingIntroNote] = useState(false);
-  const [introNoteValue, setIntroNoteValue] = useState("");
 
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
@@ -64,7 +62,6 @@ export default function ListPage({ params }: Props) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
   const noteRef = useRef<HTMLTextAreaElement>(null);
-  const introNoteRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,11 +80,6 @@ export default function ListPage({ params }: Props) {
   useEffect(() => {
     if (editingNote) setTimeout(() => noteRef.current?.focus(), 30);
   }, [editingNote]);
-
-  useEffect(() => {
-    if (editingIntroNote) setTimeout(() => introNoteRef.current?.focus(), 30);
-  }, [editingIntroNote]);
-
 
   useEffect(() => {
     function onScroll() {
@@ -205,7 +197,6 @@ export default function ListPage({ params }: Props) {
   }
 
   function startDescEdit() {
-    if (previewMode) return;
     setDescValue(list!.description ?? "");
     setEditingDesc(true);
   }
@@ -231,20 +222,6 @@ export default function ListPage({ params }: Props) {
 
   function handleNoteKey(e: React.KeyboardEvent) {
     if (e.key === "Escape") commitNoteEdit();
-  }
-
-  function startIntroNoteEdit() {
-    setIntroNoteValue(list!.introNote ?? "");
-    setEditingIntroNote(true);
-  }
-
-  function commitIntroNoteEdit() {
-    setIntroNote(id, introNoteValue);
-    setEditingIntroNote(false);
-  }
-
-  function handleIntroNoteKey(e: React.KeyboardEvent) {
-    if (e.key === "Escape") commitIntroNoteEdit();
   }
 
   function handleScrollArrow() {
@@ -550,40 +527,40 @@ export default function ListPage({ params }: Props) {
               />
             )}
 
-            {/* Intro-page-only note */}
-            {editingIntroNote ? (
+            {/* Description — synced with the edit-mode description field */}
+            {editingDesc ? (
               <div className="w-full flex flex-col gap-2">
                 <textarea
-                  ref={introNoteRef}
-                  value={introNoteValue}
-                  onChange={(e) => setIntroNoteValue(e.target.value)}
-                  onKeyDown={handleIntroNoteKey}
-                  placeholder="Add an intro note…"
+                  ref={descRef}
+                  value={descValue}
+                  onChange={(e) => setDescValue(e.target.value)}
+                  onKeyDown={handleDescKey}
+                  placeholder="Add a description…"
                   rows={3}
                   className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
                   style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.92)" }}
                 />
                 <div className="flex justify-center">
                   <button
-                    onMouseDown={(e) => { e.preventDefault(); commitIntroNoteEdit(); }}
+                    onMouseDown={(e) => { e.preventDefault(); commitDescEdit(); }}
                     className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
                     style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
                   >Done</button>
                 </div>
               </div>
-            ) : list.introNote ? (
+            ) : list.description ? (
               <p
                 className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
                 style={{ color: "hsl(var(--foreground) / 0.92)" }}
-                onClick={startIntroNoteEdit}
-                title="Tap to edit intro note"
-              >{list.introNote}</p>
+                onClick={startDescEdit}
+                title="Tap to edit description"
+              >{list.description}</p>
             ) : (
               <button
-                onClick={startIntroNoteEdit}
+                onClick={startDescEdit}
                 className="text-sm font-medium transition-opacity hover:opacity-60"
                 style={{ color: "hsl(var(--foreground) / 0.65)" }}
-              >+ intro note</button>
+              >+ description</button>
             )}
           </div>
         ) : previewMode ? (

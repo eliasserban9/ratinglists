@@ -90,7 +90,7 @@ function normalize(raw: Partial<StoredData>): StoredData {
   return {
     lists: (raw.lists ?? []).map((l) => ({
       colorMode: false,
-      sortMode: "rating" as SortMode,
+      sortMode: "added" as SortMode,
       updatedAt: l.createdAt,
       ...l,
     })),
@@ -161,7 +161,7 @@ export function useLists() {
         createdAt: now,
         updatedAt: now,
         colorMode: false,
-        sortMode: "rating",
+        sortMode: "added",
       };
       persist({ ...data, lists: [newList, ...data.lists] });
       return id;
@@ -300,7 +300,7 @@ export function useLists() {
         createdAt: now,
         updatedAt: now,
         colorMode: false,
-        sortMode: "rating",
+        sortMode: "added",
         categoryId,
       };
       persist({ ...data, lists: [newList, ...data.lists] });
