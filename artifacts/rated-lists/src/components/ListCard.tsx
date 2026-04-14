@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import type { RatedList, ListItem } from "@/hooks/useLists";
 import { ratingToColor } from "@/lib/ratingColor";
 
@@ -23,7 +23,6 @@ function averageColor(items: ListItem[]): string {
 export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToList, scale = 1 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const colored = list.colorMode && list.items.length > 0;
   const bgColor = colored ? averageColor(list.items) : undefined;
@@ -31,17 +30,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const avg = list.items.length > 0 ? averageRating(list.items) : null;
   const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
   const ratingColor = avg !== null ? ratingToColor(avg) : null;
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function onPointerDown(e: PointerEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [menuOpen]);
 
   function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
@@ -152,7 +140,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
           </button>
 
           {/* ⋮ options menu */}
-          <div ref={menuRef} className="relative">
+          <div className="relative">
             <button
               onClick={handleMenuToggle}
               className="w-6 h-6 flex items-center justify-center rounded-lg text-sm font-bold leading-none transition-opacity hover:opacity-70"
@@ -166,22 +154,29 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
             </button>
 
             {menuOpen && (
-              <div
-                className="absolute right-0 top-8 z-30 min-w-[140px] rounded-xl overflow-hidden shadow-lg border"
-                style={{
-                  backgroundColor: "hsl(var(--popover))",
-                  borderColor: "hsl(var(--popover-border))",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={handleAddToList}
-                  className="w-full px-3.5 py-2.5 text-sm text-left transition-colors hover:bg-muted"
-                  style={{ color: "hsl(var(--foreground))" }}
+              <>
+                {/* Transparent overlay — closes menu on tap outside */}
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+                />
+                {/* Dropdown */}
+                <div
+                  className="absolute right-0 top-8 z-30 min-w-[140px] rounded-xl overflow-hidden shadow-lg border"
+                  style={{
+                    backgroundColor: "hsl(var(--popover))",
+                    borderColor: "hsl(var(--popover-border))",
+                  }}
                 >
-                  Add to list
-                </button>
-              </div>
+                  <button
+                    onClick={handleAddToList}
+                    className="w-full px-3.5 py-2.5 text-sm text-left transition-colors hover:bg-muted"
+                    style={{ color: "hsl(var(--foreground))" }}
+                  >
+                    Add to list
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
