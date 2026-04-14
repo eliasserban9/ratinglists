@@ -568,27 +568,7 @@ export default function ListPage({ params }: Props) {
               >+ description</button>
             )}
           </div>
-        ) : previewMode ? (
-          /* Item-page preview header: compact title + avg */
-          <div className="flex items-baseline justify-center gap-3 mb-2 flex-wrap">
-            <h1 className="text-3xl font-bold text-foreground text-center">
-              {list.title}
-            </h1>
-            {avgColors && avg !== null && (
-              <div
-                className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl shrink-0"
-                style={{ backgroundColor: avgColors.bg }}
-              >
-                <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
-                  {fmt(avg)}
-                </span>
-                <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
-                  avg
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
+        ) : previewMode ? null : (
           <>
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-1">
@@ -707,6 +687,26 @@ export default function ListPage({ params }: Props) {
               padding: "14px 10px 10px",
             }}
           >
+            {/* Title + avg rating */}
+            <div className="flex items-baseline justify-center gap-3 mb-3 flex-wrap">
+              <h1 className="text-3xl font-bold text-foreground text-center">
+                {list.title}
+              </h1>
+              {avgColors && avg !== null && (
+                <div
+                  className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl shrink-0"
+                  style={{ backgroundColor: avgColors.bg }}
+                >
+                  <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
+                    {fmt(avg)}
+                  </span>
+                  <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
+                    avg
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Cover photo */}
             {!showIntro && list.coverPhoto && (
               <div className="flex justify-center mb-3">
