@@ -550,8 +550,8 @@ export default function ListPage({ params }: Props) {
               </div>
             ) : list.description ? (
               <p
-                className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
-                style={{ color: "hsl(var(--foreground) / 0.92)" }}
+                className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
+                style={{ color: "hsl(var(--foreground))" }}
                 onClick={startDescEdit}
                 title="Tap to edit description"
               >{list.description}</p>
@@ -737,8 +737,8 @@ export default function ListPage({ params }: Props) {
               </div>
             ) : list.note ? (
               <p
-                className="text-sm cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
-                style={{ color: "hsl(var(--foreground) / 0.90)" }}
+                className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
+                style={{ color: "hsl(var(--foreground))" }}
                 onClick={startNoteEdit}
                 title="Tap to edit note"
               >
