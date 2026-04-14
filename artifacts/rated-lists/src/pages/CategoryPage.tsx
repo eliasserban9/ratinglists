@@ -4,6 +4,7 @@ import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
 import { ListCard } from "@/components/ListCard";
 import { NewListDialog } from "@/components/NewListDialog";
+import { CopyToListModal } from "@/components/CopyToListModal";
 
 interface Props {
   params: { id: string };
@@ -27,12 +28,22 @@ export default function CategoryPage({ params }: Props) {
     loading: listsLoading,
     getCategory, getListsForCategory, createListInCategory,
     deleteList, setColorMode, renameCategory, setCategorySortMode,
+    copyItemsToLists, allLists,
   } = useLists();
   const [open, setOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [copySourceListId, setCopySourceListId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(msg: string, ok: boolean) {
+    setToast({ msg, ok });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }
   const category = getCategory(id);
   const rawLists = getListsForCategory(id);
 
@@ -198,6 +209,7 @@ export default function CategoryPage({ params }: Props) {
                   onClick={() => navigate(`/list/${list.id}`)}
                   onDelete={() => deleteList(list.id)}
                   onColorModeChange={(value) => setColorMode(list.id, value)}
+                  onAddToList={() => setCopySourceListId(list.id)}
                 />
               ))}
             </div>
@@ -212,6 +224,32 @@ export default function CategoryPage({ params }: Props) {
       >+</button>
 
       <NewListDialog open={open} onClose={() => setOpen(false)} onCreate={handleCreate} />
+
+      {toast && (
+        <div
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-3 rounded-2xl shadow-lg text-sm font-medium text-white flex items-center gap-2"
+          style={{ backgroundColor: toast.ok ? "#16a34a" : "#dc2626", maxWidth: "calc(100vw - 2rem)" }}
+        >
+          <span>{toast.ok ? "✓" : "✕"}</span>
+          {toast.msg}
+        </div>
+      )}
+
+      {copySourceListId && (() => {
+        const src = allLists.find((l) => l.id === copySourceListId);
+        if (!src) return null;
+        return (
+          <CopyToListModal
+            sourceList={src}
+            allLists={allLists}
+            onClose={() => setCopySourceListId(null)}
+            onConfirm={(targetIds) => {
+              copyItemsToLists(copySourceListId, targetIds);
+              showToast(`Copied to ${targetIds.length} list${targetIds.length === 1 ? "" : "s"}`, true);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
