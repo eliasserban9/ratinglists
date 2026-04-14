@@ -568,7 +568,27 @@ export default function ListPage({ params }: Props) {
               >+ description</button>
             )}
           </div>
-        ) : previewMode ? null : (
+        ) : previewMode ? (
+          /* Item-page preview header: compact title + avg */
+          <div className="flex items-baseline justify-center gap-3 mb-2 flex-wrap">
+            <h1 className="text-3xl font-bold text-foreground text-center">
+              {list.title}
+            </h1>
+            {avgColors && avg !== null && (
+              <div
+                className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl shrink-0"
+                style={{ backgroundColor: avgColors.bg }}
+              >
+                <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
+                  {fmt(avg)}
+                </span>
+                <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
+                  avg
+                </span>
+              </div>
+            )}
+          </div>
+        ) : (
           <>
             {/* Title row */}
             <div className="flex items-center justify-between gap-3 mb-1">
@@ -675,172 +695,124 @@ export default function ListPage({ params }: Props) {
           onChange={handlePhotoChange}
         />
 
-        {!isIntroPage && (previewMode ? (
-          /* Preview item pages — ultra-transparent glass panel */
-          <div
-            style={{
-              borderRadius: 24,
-              backgroundColor: isLightBg ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)",
-              backdropFilter: "blur(14px)",
-              WebkitBackdropFilter: "blur(14px)",
-              border: `1px solid ${isLightBg ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.09)"}`,
-              padding: "14px 10px 10px",
-            }}
-          >
-            {/* Title + avg rating */}
-            <div className="flex items-baseline justify-center gap-3 mb-3 flex-wrap">
-              <h1 className="text-3xl font-bold text-foreground text-center">
-                {list.title}
-              </h1>
-              {avgColors && avg !== null && (
-                <div
-                  className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl shrink-0"
-                  style={{ backgroundColor: avgColors.bg }}
-                >
-                  <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
-                    {fmt(avg)}
-                  </span>
-                  <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
-                    avg
-                  </span>
-                </div>
-              )}
-            </div>
+        {/* Cover photo — shown on item pages only when intro is disabled */}
+        {previewMode && !showIntro && list.coverPhoto && (
+          <div className="flex justify-center mb-3">
+            <img
+              src={list.coverPhoto}
+              alt="Cover"
+              className="rounded-2xl object-cover"
+              style={{ width: 220, height: 220 }}
+            />
+          </div>
+        )}
 
-            {/* Cover photo */}
-            {!showIntro && list.coverPhoto && (
-              <div className="flex justify-center mb-3">
-                <img
-                  src={list.coverPhoto}
-                  alt="Cover"
-                  className="rounded-2xl object-cover"
-                  style={{ width: 220, height: 220 }}
+        {previewMode && !showIntro && !list.coverPhoto && <div className="mb-2" />}
+
+        {/* Note section — shown on item pages in preview mode (not on intro page) */}
+        {previewMode && !isIntroPage && (
+          <div className="mb-3">
+            {editingNote ? (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  ref={noteRef}
+                  value={noteValue}
+                  onChange={(e) => setNoteValue(e.target.value)}
+                  onKeyDown={handleNoteKey}
+                  placeholder="Add a note…"
+                  rows={3}
+                  className="w-full text-sm bg-transparent border-b outline-none resize-none placeholder:opacity-40"
+                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
                 />
-              </div>
-            )}
-            {!showIntro && !list.coverPhoto && <div className="mb-2" />}
-
-            {/* Note */}
-            <div className="mb-3">
-              {editingNote ? (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    ref={noteRef}
-                    value={noteValue}
-                    onChange={(e) => setNoteValue(e.target.value)}
-                    onKeyDown={handleNoteKey}
-                    placeholder="Add a note…"
-                    rows={3}
-                    className="w-full text-sm bg-transparent border-b outline-none resize-none placeholder:opacity-40"
-                    style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
-                  />
-                  <div className="flex justify-start">
-                    <button
-                      onMouseDown={(e) => { e.preventDefault(); commitNoteEdit(); }}
-                      className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
-                      style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
-                    >Done</button>
-                  </div>
-                </div>
-              ) : list.note ? (
-                <p
-                  className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
-                  style={{ color: "hsl(var(--foreground))" }}
-                  onClick={startNoteEdit}
-                  title="Tap to edit note"
-                >{list.note}</p>
-              ) : (
-                <div className="flex justify-center">
+                <div className="flex justify-start">
                   <button
-                    onClick={startNoteEdit}
-                    className="text-sm font-medium transition-opacity hover:opacity-60"
-                    style={{ color: "hsl(var(--foreground) / 0.65)" }}
-                  >+ note</button>
+                    onMouseDown={(e) => { e.preventDefault(); commitNoteEdit(); }}
+                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                  >Done</button>
                 </div>
-              )}
-            </div>
-
-            {/* Off-screen measurement div */}
-            <div
-              ref={measureRef}
-              className="flex flex-col gap-0.5"
-              style={{ position: "absolute", top: -9999, left: 0, right: 0, visibility: "hidden", pointerEvents: "none" }}
-              aria-hidden="true"
-            >
-              {measureItems.map((item, index) => (
-                <ItemRow
-                  key={`measure-${item.id}`}
-                  item={item}
-                  rank={index + 1}
-                  onRatingChange={() => {}}
-                  onDelete={() => {}}
-                  hideDelete
-                />
-              ))}
-            </div>
-
-            {/* Items */}
-            {displayedItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
-                <div className="text-5xl">🎯</div>
-                <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
               </div>
+            ) : list.note ? (
+              <p
+                className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
+                style={{ color: "hsl(var(--foreground))" }}
+                onClick={startNoteEdit}
+                title="Tap to edit note"
+              >{list.note}</p>
             ) : (
-              <div
-                className={showIntro ? "flex flex-col items-stretch justify-start" : ""}
-                style={showIntro ? { minHeight: "calc(100vh - 210px)", paddingTop: "5%" } : undefined}
-              >
-                <div style={naturalHeight > 0 ? { height: naturalHeight * pageScale, overflow: "hidden" } : undefined}>
-                  <div
-                    ref={itemsRef}
-                    className="flex flex-col gap-0.5"
-                    style={{ transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" }}
-                  >
-                    {previewItems.map((item, index) => (
-                      <ItemRow
-                        key={item.id}
-                        item={item}
-                        rank={pageStart + index + 1}
-                        onRatingChange={() => {}}
-                        onRename={undefined}
-                        onDelete={() => deleteItem(id, item.id)}
-                        hideDelete
-                        textScale={1}
-                        preview
-                      />
-                    ))}
-                  </div>
-                </div>
+              <div className="flex justify-center">
+                <button
+                  onClick={startNoteEdit}
+                  className="text-sm font-medium transition-opacity hover:opacity-60"
+                  style={{ color: "hsl(var(--foreground) / 0.65)" }}
+                >+ note</button>
               </div>
             )}
           </div>
+        )}
+
+        {!isIntroPage && (displayedItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
+            <div className="text-5xl">🎯</div>
+            <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
+          </div>
         ) : (
-          /* Edit mode items — no glass */
-          displayedItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center mt-20 gap-3 text-center">
-              <div className="text-5xl">🎯</div>
-              <p className="text-muted-foreground text-base">Tap + to add your first item.</p>
+          <>
+            {/* Off-screen measurement div — always measures the first item page */}
+            {previewMode && (
+              <div
+                ref={measureRef}
+                className="flex flex-col gap-0.5"
+                style={{ position: "absolute", top: -9999, left: 0, right: 0, visibility: "hidden", pointerEvents: "none" }}
+                aria-hidden="true"
+              >
+                {measureItems.map((item, index) => (
+                  <ItemRow
+                    key={`measure-${item.id}`}
+                    item={item}
+                    rank={index + 1}
+                    onRatingChange={() => {}}
+                    onDelete={() => {}}
+                    hideDelete
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Visible items area — centering wrapper when intro is on */}
+            <div
+              className={showIntro && previewMode ? "flex flex-col items-stretch justify-start" : ""}
+              style={showIntro && previewMode ? { minHeight: "calc(100vh - 210px)", paddingTop: "5%" } : undefined}
+            >
+              {/* Height constrainer + scale */}
+              <div style={previewMode && naturalHeight > 0 ? { height: naturalHeight * pageScale, overflow: "hidden" } : undefined}>
+                <div
+                  ref={itemsRef}
+                  className={previewMode ? "flex flex-col gap-0.5" : "flex flex-col gap-2"}
+                  style={previewMode ? { transform: `scale(${pageScale})`, transformOrigin: "top left", width: pageScale > 0 ? `${100 / pageScale}%` : "100%" } : undefined}
+                >
+                  {previewItems.map((item, index) => (
+                    <ItemRow
+                      key={item.id}
+                      item={item}
+                      rank={pageStart + index + 1}
+                      onRatingChange={previewMode ? () => {} : (rating) => updateItemRating(id, item.id, rating)}
+                      onRename={previewMode ? undefined : (name) => renameItem(id, item.id, name)}
+                      onDelete={() => deleteItem(id, item.id)}
+                      showMoveBar={!previewMode && currentSortMode === "added"}
+                      onMoveUp={() => moveItem(id, item.id, "up")}
+                      onMoveDown={() => moveItem(id, item.id, "down")}
+                      isFirst={index === 0}
+                      isLast={index === previewItems.length - 1}
+                      hideDelete={previewMode}
+                      textScale={previewMode ? 1 : 0.85}
+                      preview={previewMode}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {previewItems.map((item, index) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  rank={pageStart + index + 1}
-                  onRatingChange={(rating) => updateItemRating(id, item.id, rating)}
-                  onRename={(name) => renameItem(id, item.id, name)}
-                  onDelete={() => deleteItem(id, item.id)}
-                  showMoveBar={currentSortMode === "added"}
-                  onMoveUp={() => moveItem(id, item.id, "up")}
-                  onMoveDown={() => moveItem(id, item.id, "down")}
-                  isFirst={index === 0}
-                  isLast={index === previewItems.length - 1}
-                  textScale={0.85}
-                />
-              ))}
-            </div>
-          )
+          </>
         ))}
         {/* Note section — below items, hidden in preview mode */}
         {!previewMode && (
