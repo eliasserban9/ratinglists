@@ -376,6 +376,11 @@ export default function ListPage({ params }: Props) {
 
   const hasPhotoBg = previewMode && !!list.coverPhoto;
 
+  // Glass card colours for intro page — adapts to light vs dark background
+  const isLightBg = listBg ? bgLightness > 52 : !isDark;
+  const introGlassBg     = isLightBg ? "rgba(0,0,0,0.06)"    : "rgba(255,255,255,0.12)";
+  const introGlassBorder = isLightBg ? "rgba(0,0,0,0.10)"    : "rgba(255,255,255,0.22)";
+
   return (
     <div
       className="min-h-screen"
@@ -500,68 +505,81 @@ export default function ListPage({ params }: Props) {
             className="flex flex-col items-center justify-center gap-5 py-4"
             style={{ minHeight: "calc(100vh - 180px)", paddingBottom: "18%" }}
           >
-            <h1 className="text-4xl font-bold text-foreground text-center px-2 leading-tight">
-              {list.title}
-            </h1>
-
-            {avgColors && avg !== null && (
-              <div
-                className="inline-flex items-baseline gap-1.5 px-4 py-1.5 rounded-xl"
-                style={{ backgroundColor: avgColors.bg }}
-              >
-                <span className="text-2xl font-bold" style={{ color: avgColors.ratingColor }}>
-                  {fmt(avg)}
-                </span>
-                <span className="text-sm font-medium" style={{ color: avgColors.rankColor }}>
-                  avg
-                </span>
-              </div>
-            )}
-
+            {/* Cover photo — outside the glass card */}
             {list.coverPhoto && (
               <img
                 src={list.coverPhoto}
                 alt="Cover"
                 className="rounded-3xl object-cover shadow-lg"
-                style={{ width: 320, height: 320 }}
+                style={{ width: 300, height: 300 }}
               />
             )}
 
-            {/* Description — synced with the edit-mode description field */}
-            {editingDesc ? (
-              <div className="w-full flex flex-col gap-2">
-                <textarea
-                  ref={descRef}
-                  value={descValue}
-                  onChange={(e) => setDescValue(e.target.value)}
-                  onKeyDown={handleDescKey}
-                  placeholder="Add a description…"
-                  rows={3}
-                  className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
-                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.92)" }}
-                />
-                <div className="flex justify-center">
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); commitDescEdit(); }}
-                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
-                  >Done</button>
+            {/* Glass card — title, rating, description */}
+            <div
+              className="w-full flex flex-col items-center gap-4 px-6 py-7"
+              style={{
+                borderRadius: 28,
+                backgroundColor: introGlassBg,
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                border: `1px solid ${introGlassBorder}`,
+              }}
+            >
+              <h1 className="text-4xl font-bold text-foreground text-center px-2 leading-tight">
+                {list.title}
+              </h1>
+
+              {avgColors && avg !== null && (
+                <div
+                  className="inline-flex items-baseline gap-1.5 px-4 py-1.5 rounded-xl"
+                  style={{ backgroundColor: avgColors.bg }}
+                >
+                  <span className="text-2xl font-bold" style={{ color: avgColors.ratingColor }}>
+                    {fmt(avg)}
+                  </span>
+                  <span className="text-sm font-medium" style={{ color: avgColors.rankColor }}>
+                    avg
+                  </span>
                 </div>
-              </div>
-            ) : list.description ? (
-              <p
-                className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
-                style={{ color: "hsl(var(--foreground))" }}
-                onClick={startDescEdit}
-                title="Tap to edit description"
-              >{list.description}</p>
-            ) : (
-              <button
-                onClick={startDescEdit}
-                className="text-sm font-medium transition-opacity hover:opacity-60"
-                style={{ color: "hsl(var(--foreground) / 0.65)" }}
-              >+ description</button>
-            )}
+              )}
+
+              {/* Description — synced with the edit-mode description field */}
+              {editingDesc ? (
+                <div className="w-full flex flex-col gap-2">
+                  <textarea
+                    ref={descRef}
+                    value={descValue}
+                    onChange={(e) => setDescValue(e.target.value)}
+                    onKeyDown={handleDescKey}
+                    placeholder="Add a description…"
+                    rows={3}
+                    className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
+                    style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.92)" }}
+                  />
+                  <div className="flex justify-center">
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); commitDescEdit(); }}
+                      className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                    >Done</button>
+                  </div>
+                </div>
+              ) : list.description ? (
+                <p
+                  className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center"
+                  style={{ color: "hsl(var(--foreground))" }}
+                  onClick={startDescEdit}
+                  title="Tap to edit description"
+                >{list.description}</p>
+              ) : (
+                <button
+                  onClick={startDescEdit}
+                  className="text-sm font-medium transition-opacity hover:opacity-60"
+                  style={{ color: "hsl(var(--foreground) / 0.65)" }}
+                >+ description</button>
+              )}
+            </div>
           </div>
         ) : previewMode ? (
           /* Item-page preview header: compact title + avg */
