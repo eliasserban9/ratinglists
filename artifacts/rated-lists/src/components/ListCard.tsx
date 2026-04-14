@@ -48,6 +48,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
     startPos.current = { x: e.clientX, y: e.clientY };
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
+      if (navigator.vibrate) navigator.vibrate(40);
       setMenuOpen(true);
     }, 500);
   }
