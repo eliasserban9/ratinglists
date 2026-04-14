@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { RatedList, ListItem } from "@/hooks/useLists";
 import { ratingToColor } from "@/lib/ratingColor";
@@ -33,19 +33,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
   const ratingColor = avg !== null ? ratingToColor(avg) : null;
 
-  // Close menu on any click outside (document listener added after the opening click settles)
-  useEffect(() => {
-    if (!menuOpen) return;
-    function close() {
-      setMenuOpen(false);
-      setConfirmDelete(false);
-    }
-    const tid = setTimeout(() => document.addEventListener("click", close), 50);
-    return () => {
-      clearTimeout(tid);
-      document.removeEventListener("click", close);
-    };
-  }, [menuOpen]);
 
   function openMenu(e: React.MouseEvent) {
     e.stopPropagation();
@@ -79,35 +66,46 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
 
   const dropdown = menuOpen
     ? createPortal(
-        <div
-          className="fixed z-[9999] min-w-[160px] rounded-xl overflow-hidden shadow-xl border"
-          style={{
-            top: menuPos.top,
-            right: menuPos.right,
-            backgroundColor: "hsl(var(--popover))",
-            borderColor: "hsl(var(--popover-border))",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={handleRemove}
-            className="w-full px-4 py-3 text-sm text-left active:opacity-60"
+        <>
+          {/* Full-screen backdrop — closing layer, sits beneath the menu */}
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen(false);
+              setConfirmDelete(false);
+            }}
+          />
+          {/* Menu panel — above the backdrop */}
+          <div
+            className="fixed z-[9999] min-w-[160px] rounded-xl overflow-hidden shadow-xl border"
             style={{
-              color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
-              fontWeight: confirmDelete ? 600 : 400,
+              top: menuPos.top,
+              right: menuPos.right,
+              backgroundColor: "hsl(var(--popover))",
+              borderColor: "hsl(var(--popover-border))",
             }}
           >
-            {confirmDelete ? "Tap again to confirm" : "Remove list"}
-          </button>
-          <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
-          <button
-            onClick={handleAddToList}
-            className="w-full px-4 py-3 text-sm text-left active:opacity-60"
-            style={{ color: "hsl(var(--foreground))" }}
-          >
-            Add to list
-          </button>
-        </div>,
+            <button
+              onClick={handleRemove}
+              className="w-full px-4 py-3 text-sm text-left active:opacity-60"
+              style={{
+                color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
+                fontWeight: confirmDelete ? 600 : 400,
+              }}
+            >
+              {confirmDelete ? "Tap again to confirm" : "Remove list"}
+            </button>
+            <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+            <button
+              onClick={handleAddToList}
+              className="w-full px-4 py-3 text-sm text-left active:opacity-60"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              Add to list
+            </button>
+          </div>
+        </>,
         document.body
       )
     : null;
