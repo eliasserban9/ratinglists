@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { RatedList, ListItem } from "@/hooks/useLists";
 import { ratingToColor } from "@/lib/ratingColor";
 
@@ -23,50 +24,93 @@ function averageColor(items: ListItem[]): string {
 export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToList, scale = 1 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const colored = list.colorMode && list.items.length > 0;
   const bgColor = colored ? averageColor(list.items) : undefined;
-
   const avg = list.items.length > 0 ? averageRating(list.items) : null;
   const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
   const ratingColor = avg !== null ? ratingToColor(avg) : null;
+
+  // Close menu on any click outside (document listener added after the opening click settles)
+  useEffect(() => {
+    if (!menuOpen) return;
+    function close() {
+      setMenuOpen(false);
+      setConfirmDelete(false);
+    }
+    const tid = setTimeout(() => document.addEventListener("click", close), 50);
+    return () => {
+      clearTimeout(tid);
+      document.removeEventListener("click", close);
+    };
+  }, [menuOpen]);
+
+  function openMenu(e: React.MouseEvent) {
+    e.stopPropagation();
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setMenuOpen((v) => !v);
+  }
 
   function handleColorToggle(e: React.ChangeEvent<HTMLSelectElement>) {
     e.stopPropagation();
     onColorModeChange(e.target.value === "color");
   }
 
-  function handleMenuToggle(e: React.MouseEvent) {
+  function handleRemove(e: React.MouseEvent) {
     e.stopPropagation();
-    e.preventDefault();
-    setMenuOpen((v) => !v);
-  }
-
-  function handleRemove(e: React.MouseEvent | React.PointerEvent) {
-    e.stopPropagation();
-    e.preventDefault();
     if (confirmDelete) {
       setMenuOpen(false);
       onDelete();
     } else {
       setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 2500);
     }
   }
 
-  function handleAddToList(e: React.MouseEvent | React.PointerEvent) {
+  function handleAddToList(e: React.MouseEvent) {
     e.stopPropagation();
-    e.preventDefault();
     setMenuOpen(false);
     onAddToList();
   }
 
-  function handleOverlayDismiss(e: React.PointerEvent) {
-    e.stopPropagation();
-    e.preventDefault();
-    setMenuOpen(false);
-    setConfirmDelete(false);
-  }
+  const dropdown = menuOpen
+    ? createPortal(
+        <div
+          className="fixed z-[9999] min-w-[160px] rounded-xl overflow-hidden shadow-xl border"
+          style={{
+            top: menuPos.top,
+            right: menuPos.right,
+            backgroundColor: "hsl(var(--popover))",
+            borderColor: "hsl(var(--popover-border))",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleRemove}
+            className="w-full px-4 py-3 text-sm text-left active:opacity-60"
+            style={{
+              color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
+              fontWeight: confirmDelete ? 600 : 400,
+            }}
+          >
+            {confirmDelete ? "Tap again to confirm" : "Remove list"}
+          </button>
+          <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+          <button
+            onClick={handleAddToList}
+            className="w-full px-4 py-3 text-sm text-left active:opacity-60"
+            style={{ color: "hsl(var(--foreground))" }}
+          >
+            Add to list
+          </button>
+        </div>,
+        document.body
+      )
+    : null;
 
   return (
     <div
@@ -118,16 +162,8 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
             className="text-xs rounded-lg px-1.5 py-1 border cursor-pointer outline-none transition-colors appearance-none"
             style={
               colored
-                ? {
-                    backgroundColor: "rgba(0,0,0,0.2)",
-                    borderColor: "rgba(255,255,255,0.25)",
-                    color: "rgba(255,255,255,0.85)",
-                  }
-                : {
-                    backgroundColor: "hsl(var(--muted))",
-                    borderColor: "hsl(var(--border))",
-                    color: "hsl(var(--muted-foreground))",
-                  }
+                ? { backgroundColor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }
+                : { backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
             }
             aria-label="Color mode"
           >
@@ -135,58 +171,15 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
             <option value="color">🎨 Color</option>
           </select>
 
-          {/* ⋮ options menu */}
-          <div className="relative">
-            <button
-              onClick={handleMenuToggle}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-xl font-bold leading-none transition-opacity hover:opacity-70"
-              style={{
-                color: colored ? "rgba(255,255,255,0.70)" : "hsl(var(--muted-foreground))",
-              }}
-              aria-label="More options"
-            >
-              ⋮
-            </button>
-
-            {menuOpen && (
-              <>
-                {/* Full-screen dismiss layer — fires on first touch */}
-                <div
-                  className="fixed inset-0 z-20"
-                  onPointerDown={handleOverlayDismiss}
-                />
-                {/* Dropdown */}
-                <div
-                  className="absolute right-0 top-9 z-30 min-w-[150px] rounded-xl overflow-hidden shadow-lg border"
-                  style={{
-                    backgroundColor: "hsl(var(--popover))",
-                    borderColor: "hsl(var(--popover-border))",
-                  }}
-                >
-                  <button
-                    onPointerDown={handleRemove}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-4 py-3 text-sm text-left transition-colors active:opacity-60"
-                    style={{
-                      color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
-                      fontWeight: confirmDelete ? 600 : 400,
-                    }}
-                  >
-                    {confirmDelete ? "Tap again to confirm" : "Remove list"}
-                  </button>
-                  <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
-                  <button
-                    onPointerDown={handleAddToList}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-4 py-3 text-sm text-left transition-colors active:opacity-60"
-                    style={{ color: "hsl(var(--foreground))" }}
-                  >
-                    Add to list
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            ref={btnRef}
+            onClick={openMenu}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-xl font-bold leading-none transition-opacity hover:opacity-70"
+            style={{ color: colored ? "rgba(255,255,255,0.70)" : "hsl(var(--muted-foreground))" }}
+            aria-label="More options"
+          >
+            ⋮
+          </button>
         </div>
       </div>
 
@@ -218,6 +211,8 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
           )}
         </div>
       )}
+
+      {dropdown}
     </div>
   );
 }
