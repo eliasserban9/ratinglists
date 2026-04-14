@@ -165,6 +165,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
                 >
                   <button
                     onPointerDown={handleRemove}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full px-4 py-3 text-sm text-left transition-colors active:opacity-60"
                     style={{
                       color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
@@ -176,6 +177,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
                   <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
                   <button
                     onPointerDown={handleAddToList}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full px-4 py-3 text-sm text-left transition-colors active:opacity-60"
                     style={{ color: "hsl(var(--foreground))" }}
                   >
