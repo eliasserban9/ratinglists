@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { RatedList } from "@/hooks/useLists";
 
 interface Props {
@@ -10,9 +10,17 @@ interface Props {
 
 export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => searchRef.current?.focus(), 80);
+  }, []);
 
   const targets = allLists.filter((l) => l.id !== sourceList.id);
-  const hasAny = targets.length > 0;
+  const filtered = searchQuery.trim()
+    ? targets.filter((l) => l.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : targets;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -62,15 +70,52 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
           </button>
         </div>
 
+        {/* Search */}
+        {targets.length > 0 && (
+          <div className="px-4 pt-3 pb-2 shrink-0">
+            <div className="relative">
+              <span
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
+                style={{ color: "hsl(var(--muted-foreground))" }}
+              >🔍</span>
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search lists…"
+                className="w-full rounded-xl pl-9 pr-8 py-2 text-sm outline-none border"
+                style={{
+                  backgroundColor: "hsl(var(--muted))",
+                  color: "hsl(var(--foreground))",
+                  borderColor: "hsl(var(--border))",
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs transition-opacity hover:opacity-60"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
+                  aria-label="Clear search"
+                >✕</button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* List */}
         <div className="overflow-y-auto flex-1">
-          {!hasAny ? (
+          {targets.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground text-sm">No other lists available.</p>
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex items-center justify-center py-10">
+              <p className="text-muted-foreground text-sm">No lists matching "{searchQuery}"</p>
+            </div>
           ) : (
             <div className="py-2">
-              {targets.map((list) => (
+              {filtered.map((list) => (
                 <ListRow
                   key={list.id}
                   list={list}
@@ -115,7 +160,6 @@ function ListRow({ list, checked, onToggle }: { list: RatedList; checked: boolea
         backgroundColor: checked ? "hsl(var(--muted))" : "transparent",
       }}
     >
-      {/* Checkbox */}
       <span
         className="w-5 h-5 rounded-md border-2 shrink-0 flex items-center justify-center text-[11px] font-bold transition-colors"
         style={{
