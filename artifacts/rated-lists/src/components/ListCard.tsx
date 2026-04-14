@@ -36,7 +36,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
     onColorModeChange(e.target.value === "color");
   }
 
-  function handleMenuToggle(e: React.MouseEvent | React.TouchEvent) {
+  function handleMenuToggle(e: React.MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
     setMenuOpen((v) => !v);
@@ -138,7 +138,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
           {/* ⋮ options menu */}
           <div className="relative">
             <button
-              onPointerDown={handleMenuToggle}
+              onClick={handleMenuToggle}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-xl font-bold leading-none transition-opacity hover:opacity-70"
               style={{
                 color: colored ? "rgba(255,255,255,0.70)" : "hsl(var(--muted-foreground))",
