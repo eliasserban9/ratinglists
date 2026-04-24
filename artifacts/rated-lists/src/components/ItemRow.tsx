@@ -18,12 +18,13 @@ interface Props {
   scale?: number;
   textScale?: number;
   hideDelete?: boolean;
+  hideRating?: boolean;
   preview?: boolean;
 }
 
 export function ItemRow({
   item, rank, onRatingChange, onRename, onDelete,
-  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, textScale = 1, hideDelete = false, preview = false,
+  showMoveBar, onMoveUp, onMoveDown, isFirst, isLast, scale = 1, textScale = 1, hideDelete = false, hideRating = false, preview = false,
 }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -167,14 +168,16 @@ export function ItemRow({
           )}
 
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={openPicker}
-              className="font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80"
-              style={{ color: s.ratingColor, fontSize: `${1.25 * textScale}rem` }}
-              aria-label="Change rating"
-            >
-              {fmt(item.rating)}/10
-            </button>
+            {!hideRating && (
+              <button
+                onClick={openPicker}
+                className="font-bold px-1 py-0.5 rounded transition-opacity hover:opacity-80"
+                style={{ color: s.ratingColor, fontSize: `${1.25 * textScale}rem` }}
+                aria-label="Change rating"
+              >
+                {fmt(item.rating)}/10
+              </button>
+            )}
 
             {!hideDelete && (
               <button

@@ -1,4 +1,5 @@
 import { useState, useLayoutEffect, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
@@ -44,6 +45,10 @@ export default function ListPage({ params }: Props) {
   // Preview mode state
   const [previewMode, setPreviewMode] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [showRating, setShowRating] = useState(true);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [optionsPos, setOptionsPos] = useState({ top: 0, right: 0 });
+  const optionsBtnRef = useRef<HTMLButtonElement>(null);
   const [pageScale, setPageScale] = useState(1);
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [previewPage, setPreviewPage] = useState(0);
@@ -444,18 +449,23 @@ export default function ListPage({ params }: Props) {
               </div>
             )}
 
-            {/* Intro page toggle — only in preview mode */}
+            {/* Options menu — only in preview mode */}
             {previewMode && (
               <button
-                onClick={() => setShowIntro((v) => !v)}
-                className="text-xs font-medium px-2.5 py-1.5 rounded-full border transition-colors hover:opacity-80"
-                style={
-                  showIntro
-                    ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
-                    : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
-                }
-                aria-label="Toggle intro page"
-              >Intro</button>
+                ref={optionsBtnRef}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = optionsBtnRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    setOptionsPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+                  }
+                  setOptionsOpen((v) => !v);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full border text-sm transition-colors hover:opacity-80"
+                style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                aria-label="Preview options"
+                title="Options"
+              >⚙</button>
             )}
 
             {/* Camera / remove-photo button — only shown in preview mode */}
@@ -805,6 +815,7 @@ export default function ListPage({ params }: Props) {
                       isFirst={index === 0}
                       isLast={index === previewItems.length - 1}
                       hideDelete={previewMode}
+                      hideRating={previewMode && !showRating}
                       textScale={previewMode ? 1 : 0.85}
                       preview={previewMode}
                     />
@@ -940,6 +951,60 @@ export default function ListPage({ params }: Props) {
         onAdd={(name, rating) => { addItem(id, name, rating); setOpen(false); }}
       />
       </div>
+
+      {optionsOpen && createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={(e) => { e.stopPropagation(); setOptionsOpen(false); }}
+          />
+          <div
+            className="fixed z-[9999] min-w-[200px] rounded-xl overflow-hidden shadow-xl border"
+            style={{
+              top: optionsPos.top,
+              right: optionsPos.right,
+              backgroundColor: "hsl(var(--popover))",
+              borderColor: "hsl(var(--popover-border))",
+            }}
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowIntro((v) => !v); }}
+              className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              <span>Show intro page</span>
+              <ToggleSwitch on={showIntro} />
+            </button>
+            <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowRating((v) => !v); }}
+              className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              <span>Show ratings</span>
+              <ToggleSwitch on={showRating} />
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
+  );
+}
+
+function ToggleSwitch({ on }: { on: boolean }) {
+  return (
+    <span
+      className="relative inline-block w-9 h-5 rounded-full transition-colors shrink-0"
+      style={{ backgroundColor: on ? "hsl(var(--primary))" : "hsl(var(--muted))", border: "1px solid hsl(var(--border))" }}
+    >
+      <span
+        className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full transition-all"
+        style={{
+          left: on ? "calc(100% - 1.05rem)" : "0.15rem",
+          backgroundColor: on ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))",
+        }}
+      />
+    </span>
   );
 }
