@@ -980,7 +980,7 @@ export default function ListPage({ params }: Props) {
               className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
               style={{ color: "hsl(var(--foreground))" }}
             >
-              <span>Show ratings</span>
+              <span>Show overall rating</span>
               <ToggleSwitch on={showRating} />
             </button>
           </div>
