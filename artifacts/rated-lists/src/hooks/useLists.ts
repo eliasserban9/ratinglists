@@ -24,6 +24,8 @@ export interface RatedList {
   colorMode: boolean;
   sortMode: SortMode;
   categoryId?: string;
+  useAverageRating?: boolean;
+  manualOverallRating?: number;
 }
 
 export interface Category {
@@ -199,6 +201,26 @@ export function useLists() {
       persist({
         ...data,
         lists: data.lists.map((l) => (l.id === listId ? { ...l, sortMode } : l)),
+      });
+    },
+    [data, persist]
+  );
+
+  const setUseAverageRating = useCallback(
+    (listId: string, useAverageRating: boolean) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) => (l.id === listId ? { ...l, useAverageRating } : l)),
+      });
+    },
+    [data, persist]
+  );
+
+  const setManualOverallRating = useCallback(
+    (listId: string, rating: number | undefined) => {
+      persist({
+        ...data,
+        lists: data.lists.map((l) => (l.id === listId ? { ...l, manualOverallRating: rating } : l)),
       });
     },
     [data, persist]
@@ -576,6 +598,8 @@ export function useLists() {
     getList,
     setColorMode,
     setSortMode,
+    setUseAverageRating,
+    setManualOverallRating,
     renameList,
     setListDescription,
     setListNote,

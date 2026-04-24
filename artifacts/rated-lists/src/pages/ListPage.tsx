@@ -32,6 +32,7 @@ export default function ListPage({ params }: Props) {
     loading: listsLoading,
     getList, getCategory, addItem, updateItemRating, deleteItem,
     setSortMode, moveItem, renameList, renameItem, setListDescription, setListNote, applyListPhoto, removeListPhoto,
+    setUseAverageRating, setManualOverallRating,
   } = useLists();
 
   const [open, setOpen] = useState(false);
@@ -49,6 +50,9 @@ export default function ListPage({ params }: Props) {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [optionsPos, setOptionsPos] = useState({ top: 0, right: 0 });
   const optionsBtnRef = useRef<HTMLButtonElement>(null);
+  const [editingManualRating, setEditingManualRating] = useState(false);
+  const [manualRatingInput, setManualRatingInput] = useState("");
+  const manualRatingRef = useRef<HTMLInputElement>(null);
   const [pageScale, setPageScale] = useState(1);
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [previewPage, setPreviewPage] = useState(0);
@@ -156,10 +160,14 @@ export default function ListPage({ params }: Props) {
   const backLabel = parentCategory ? parentCategory.title : "Rating Lists";
   const backPath = parentCategory ? `/category/${parentCategory.id}` : "/";
 
-  const avg =
+  const useAvg = list.useAverageRating !== false; // default true
+  const computedAvg =
     list.items.length > 0
       ? list.items.reduce((s, i) => s + i.rating, 0) / list.items.length
       : null;
+  const avg = useAvg
+    ? computedAvg
+    : (typeof list.manualOverallRating === "number" ? list.manualOverallRating : null);
   const avgColors = avg !== null ? ratingColors(avg) : null;
 
   let displayedItems = [...list.items];
@@ -183,6 +191,28 @@ export default function ListPage({ params }: Props) {
 
   function handleTogglePreview() {
     setPreviewMode((v) => !v);
+  }
+
+  function startManualRatingEdit() {
+    if (previewMode || !list) return;
+    setManualRatingInput(
+      typeof list.manualOverallRating === "number" ? fmt(list.manualOverallRating) : ""
+    );
+    setEditingManualRating(true);
+    setTimeout(() => manualRatingRef.current?.focus(), 30);
+  }
+
+  function commitManualRating() {
+    const trimmed = manualRatingInput.trim();
+    if (trimmed === "") {
+      setManualOverallRating(id, undefined);
+    } else {
+      const n = parseFloat(trimmed);
+      if (!isNaN(n) && n >= 0 && n <= 10) {
+        setManualOverallRating(id, Math.round(n * 10) / 10);
+      }
+    }
+    setEditingManualRating(false);
   }
 
   function startTitleEdit() {
@@ -449,24 +479,22 @@ export default function ListPage({ params }: Props) {
               </div>
             )}
 
-            {/* Options menu — only in preview mode */}
-            {previewMode && (
-              <button
-                ref={optionsBtnRef}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const rect = optionsBtnRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    setOptionsPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-                  }
-                  setOptionsOpen((v) => !v);
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full border text-sm transition-colors hover:opacity-80"
-                style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
-                aria-label="Preview options"
-                title="Options"
-              >⚙</button>
-            )}
+            {/* Options menu — available in both view & preview modes */}
+            <button
+              ref={optionsBtnRef}
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = optionsBtnRef.current?.getBoundingClientRect();
+                if (rect) {
+                  setOptionsPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+                }
+                setOptionsOpen((v) => !v);
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-full border text-sm transition-colors hover:opacity-80"
+              style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
+              aria-label="List options"
+              title="Options"
+            >⚙</button>
 
             {/* Camera / remove-photo button — only shown in preview mode */}
             {previewMode && (
@@ -528,7 +556,7 @@ export default function ListPage({ params }: Props) {
                   {fmt(avg)}
                 </span>
                 <span className="text-sm font-medium" style={{ color: avgColors.rankColor }}>
-                  avg
+                  {useAvg ? "avg" : "rating"}
                 </span>
               </div>
             )}
@@ -593,7 +621,7 @@ export default function ListPage({ params }: Props) {
                   {fmt(avg)}
                 </span>
                 <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
-                  avg
+                  {useAvg ? "avg" : "rating"}
                 </span>
               </div>
             )}
@@ -645,20 +673,63 @@ export default function ListPage({ params }: Props) {
               </div>
             </div>
 
-            {/* Average rating badge */}
-            {avgColors && avg !== null && (
-              <div
-                className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl mb-2"
+            {/* Overall rating badge */}
+            {editingManualRating && !useAvg ? (
+              <div className="inline-flex items-center gap-2 mb-2">
+                <input
+                  ref={manualRatingRef}
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  value={manualRatingInput}
+                  onChange={(e) => setManualRatingInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitManualRating();
+                    if (e.key === "Escape") setEditingManualRating(false);
+                  }}
+                  onBlur={commitManualRating}
+                  placeholder="0 – 10"
+                  className="w-24 rounded-lg px-2.5 py-1 text-base font-semibold outline-none border"
+                  style={{
+                    backgroundColor: "hsl(var(--muted))",
+                    borderColor: "hsl(var(--primary))",
+                    color: "hsl(var(--foreground))",
+                  }}
+                />
+                <span className="text-xs font-medium text-muted-foreground">rating</span>
+              </div>
+            ) : avgColors && avg !== null ? (
+              <button
+                onClick={() => { if (!useAvg) startManualRatingEdit(); }}
+                className={`inline-flex items-baseline gap-1 px-3 py-1 rounded-xl mb-2 ${useAvg ? "" : "transition-opacity hover:opacity-80 cursor-pointer"}`}
                 style={{ backgroundColor: avgColors.bg }}
+                disabled={useAvg}
+                aria-label={useAvg ? "Average rating" : "Edit overall rating"}
+                title={useAvg ? undefined : "Tap to change rating"}
               >
                 <span className="text-lg font-bold" style={{ color: avgColors.ratingColor }}>
                   {fmt(avg)}
                 </span>
                 <span className="text-xs font-medium" style={{ color: avgColors.rankColor }}>
-                  avg
+                  {useAvg ? "avg" : "rating"}
                 </span>
-              </div>
-            )}
+              </button>
+            ) : !useAvg ? (
+              <button
+                onClick={startManualRatingEdit}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-xl mb-2 border border-dashed transition-colors hover:opacity-80"
+                style={{
+                  borderColor: "hsl(var(--border))",
+                  color: "hsl(var(--muted-foreground))",
+                  backgroundColor: "hsl(var(--muted))",
+                }}
+                aria-label="Set overall rating"
+              >
+                <span className="text-base font-bold">+</span>
+                <span className="text-xs font-medium">Set rating</span>
+              </button>
+            ) : null}
           </>
         )}
 
@@ -966,23 +1037,36 @@ export default function ListPage({ params }: Props) {
               borderColor: "hsl(var(--popover-border))",
             }}
           >
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowIntro((v) => !v); }}
-              className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
-              style={{ color: "hsl(var(--foreground))" }}
-            >
-              <span>Show intro page</span>
-              <ToggleSwitch on={showIntro} />
-            </button>
-            <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowRating((v) => !v); }}
-              className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
-              style={{ color: "hsl(var(--foreground))" }}
-            >
-              <span>Show overall rating</span>
-              <ToggleSwitch on={showRating} />
-            </button>
+            {previewMode ? (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowIntro((v) => !v); }}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  <span>Show intro page</span>
+                  <ToggleSwitch on={showIntro} />
+                </button>
+                <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowRating((v) => !v); }}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  <span>Show overall rating</span>
+                  <ToggleSwitch on={showRating} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); setUseAverageRating(id, !useAvg); }}
+                className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                style={{ color: "hsl(var(--foreground))" }}
+              >
+                <span>Average rating</span>
+                <ToggleSwitch on={useAvg} />
+              </button>
+            )}
           </div>
         </>,
         document.body
