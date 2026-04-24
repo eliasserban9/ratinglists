@@ -519,7 +519,7 @@ export default function ListPage({ params }: Props) {
               {list.title}
             </h1>
 
-            {avgColors && avg !== null && (
+            {showRating && avgColors && avg !== null && (
               <div
                 className="inline-flex items-baseline gap-1.5 px-4 py-1.5 rounded-xl"
                 style={{ backgroundColor: avgColors.bg }}
@@ -584,7 +584,7 @@ export default function ListPage({ params }: Props) {
             <h1 className="text-3xl font-bold text-foreground text-center">
               {list.title}
             </h1>
-            {avgColors && avg !== null && (
+            {showRating && avgColors && avg !== null && (
               <div
                 className="inline-flex items-baseline gap-1 px-3 py-1 rounded-xl shrink-0"
                 style={{ backgroundColor: avgColors.bg }}
@@ -815,7 +815,6 @@ export default function ListPage({ params }: Props) {
                       isFirst={index === 0}
                       isLast={index === previewItems.length - 1}
                       hideDelete={previewMode}
-                      hideRating={previewMode && !showRating}
                       textScale={previewMode ? 1 : 0.85}
                       preview={previewMode}
                     />
