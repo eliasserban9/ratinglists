@@ -222,8 +222,24 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
             }
             aria-label="Color mode"
           >
-            <option value="plain">⬜ Default</option>
-            <option value="color">🎨 Color</option>
+            <option
+              value="plain"
+              style={{
+                backgroundColor: isLight ? "#fff" : "#1a1a1f",
+                color: isLight ? "#1a1a1f" : "#fff",
+              }}
+            >
+              ⬜ Default
+            </option>
+            <option
+              value="color"
+              style={{
+                backgroundColor: isLight ? "#fff" : "#1a1a1f",
+                color: isLight ? "#1a1a1f" : "#fff",
+              }}
+            >
+              🎨 Color
+            </option>
           </select>
 
           <button
