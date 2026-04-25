@@ -213,33 +213,18 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
             onChange={handleColorToggle}
             onClick={(e) => e.stopPropagation()}
             className="text-xs rounded-lg px-1.5 py-1 border cursor-pointer outline-none transition-colors appearance-none"
-            style={
-              colorModeOn
+            style={{
+              colorScheme: isLight ? "light" : "dark",
+              ...(colorModeOn
                 ? { backgroundColor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }
                 : showPhoto
                 ? { backgroundColor: onPhotoControlBg, borderColor: onPhotoControlBorder, color: onPhotoControlText }
-                : { backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
-            }
+                : { backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }),
+            }}
             aria-label="Color mode"
           >
-            <option
-              value="plain"
-              style={{
-                backgroundColor: isLight ? "#fff" : "#1a1a1f",
-                color: isLight ? "#1a1a1f" : "#fff",
-              }}
-            >
-              ⬜ Default
-            </option>
-            <option
-              value="color"
-              style={{
-                backgroundColor: isLight ? "#fff" : "#1a1a1f",
-                color: isLight ? "#1a1a1f" : "#fff",
-              }}
-            >
-              🎨 Color
-            </option>
+            <option value="plain">⬜ Default</option>
+            <option value="color">🎨 Color</option>
           </select>
 
           <button
