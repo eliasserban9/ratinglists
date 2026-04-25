@@ -27,8 +27,9 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  const colored = list.colorMode && list.items.length > 0;
-  const bgColor = colored ? averageColor(list.items) : undefined;
+  const hasPhoto = !!list.coverPhoto;
+  const colored = hasPhoto || (list.colorMode && list.items.length > 0);
+  const bgColor = !hasPhoto && colored ? averageColor(list.items) : undefined;
   const avg = list.items.length > 0 ? averageRating(list.items) : null;
   const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
   const ratingColor = avg !== null ? ratingToColor(avg) : null;
@@ -113,14 +114,35 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   return (
     <div
       onClick={onClick}
-      className="relative rounded-2xl p-4 cursor-pointer active:scale-[.98] transition-all hover:shadow-sm border select-none"
+      className="relative rounded-2xl p-4 cursor-pointer active:scale-[.98] transition-all hover:shadow-sm border select-none overflow-hidden"
       style={
         colored
-          ? { backgroundColor: bgColor, borderColor: "transparent", zoom: `${Math.round(scale * 100)}%` }
+          ? { backgroundColor: bgColor ?? "#222", borderColor: "transparent", zoom: `${Math.round(scale * 100)}%` }
           : { backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--card-border))", zoom: `${Math.round(scale * 100)}%` }
       }
     >
-      <div className="flex items-start justify-between gap-2">
+      {hasPhoto && (
+        <>
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `url(${list.coverPhoto})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(18px)",
+              transform: "scale(1.25)",
+              opacity: 0.95,
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundColor: "rgba(0,0,0,0.30)" }}
+          />
+        </>
+      )}
+      <div className="relative flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 min-w-0">
             <h2
@@ -182,7 +204,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
       </div>
 
       {list.items.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1">
+        <div className="relative mt-3 flex flex-wrap gap-1">
           {[...list.items]
             .sort((a, b) => b.rating - a.rating)
             .slice(0, 3)
