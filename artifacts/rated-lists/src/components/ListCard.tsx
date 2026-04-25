@@ -28,8 +28,10 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const hasPhoto = !!list.coverPhoto;
-  const colored = hasPhoto || (list.colorMode && list.items.length > 0);
+  const colorModeOn = list.colorMode && list.items.length > 0;
+  const colored = hasPhoto || colorModeOn;
   const bgColor = !hasPhoto && colored ? averageColor(list.items) : undefined;
+  const photoTintColor = hasPhoto && colorModeOn ? ratingToColor(averageRating(list.items)) : null;
   const avg = list.items.length > 0 ? averageRating(list.items) : null;
   const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
   const ratingColor = avg !== null ? ratingToColor(avg) : null;
@@ -138,7 +140,11 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
           <div
             aria-hidden
             className="absolute inset-0 pointer-events-none"
-            style={{ backgroundColor: "rgba(0,0,0,0.30)" }}
+            style={
+              photoTintColor
+                ? { backgroundColor: photoTintColor, opacity: 0.55, mixBlendMode: "multiply" }
+                : { backgroundColor: "rgba(0,0,0,0.30)" }
+            }
           />
         </>
       )}
