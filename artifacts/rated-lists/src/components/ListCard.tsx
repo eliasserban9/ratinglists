@@ -28,7 +28,10 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [colorPickerPos, setColorPickerPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
+  const colorPickerBtnRef = useRef<HTMLButtonElement>(null);
 
   const colorModeOn = list.colorMode && list.items.length > 0;
   const showPhoto = !!list.coverPhoto && !colorModeOn;
@@ -61,9 +64,19 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
     setMenuOpen((v) => !v);
   }
 
-  function handleColorToggle(e: React.ChangeEvent<HTMLSelectElement>) {
+  function openColorPicker(e: React.MouseEvent) {
     e.stopPropagation();
-    onColorModeChange(e.target.value === "color");
+    const rect = colorPickerBtnRef.current?.getBoundingClientRect();
+    if (rect) {
+      setColorPickerPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setColorPickerOpen((v) => !v);
+  }
+
+  function pickColorMode(value: boolean, e: React.MouseEvent) {
+    e.stopPropagation();
+    setColorPickerOpen(false);
+    onColorModeChange(value);
   }
 
   function handleRemove(e: React.MouseEvent) {
@@ -81,6 +94,58 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
     setMenuOpen(false);
     onAddToList();
   }
+
+  const colorPickerPortal = colorPickerOpen
+    ? createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={(e) => {
+              e.stopPropagation();
+              setColorPickerOpen(false);
+            }}
+          />
+          <div
+            className="fixed z-[9999] min-w-[140px] rounded-xl overflow-hidden shadow-xl border"
+            style={{
+              top: colorPickerPos.top,
+              right: colorPickerPos.right,
+              backgroundColor: "hsl(var(--popover))",
+              borderColor: "hsl(var(--popover-border))",
+            }}
+          >
+            <button
+              type="button"
+              onClick={(e) => pickColorMode(false, e)}
+              className="w-full px-4 py-2.5 text-sm text-left active:opacity-60 flex items-center gap-2"
+              style={{
+                color: "hsl(var(--foreground))",
+                backgroundColor: !list.colorMode ? "hsl(var(--muted))" : "transparent",
+                fontWeight: !list.colorMode ? 600 : 400,
+              }}
+            >
+              <span>⬜</span>
+              <span>Default</span>
+            </button>
+            <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+            <button
+              type="button"
+              onClick={(e) => pickColorMode(true, e)}
+              className="w-full px-4 py-2.5 text-sm text-left active:opacity-60 flex items-center gap-2"
+              style={{
+                color: "hsl(var(--foreground))",
+                backgroundColor: list.colorMode ? "hsl(var(--muted))" : "transparent",
+                fontWeight: list.colorMode ? 600 : 400,
+              }}
+            >
+              <span>🎨</span>
+              <span>Color</span>
+            </button>
+          </div>
+        </>,
+        document.body
+      )
+    : null;
 
   const dropdown = menuOpen
     ? createPortal(
@@ -208,24 +273,25 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <select
-            value={list.colorMode ? "color" : "plain"}
-            onChange={handleColorToggle}
-            onClick={(e) => e.stopPropagation()}
-            className="text-xs rounded-lg px-1.5 py-1 border cursor-pointer outline-none transition-colors appearance-none"
-            style={{
-              colorScheme: isLight ? "light" : "dark",
-              ...(colorModeOn
+          <button
+            ref={colorPickerBtnRef}
+            type="button"
+            onClick={openColorPicker}
+            className="text-xs rounded-lg px-2 py-1 border cursor-pointer outline-none transition-colors flex items-center gap-1"
+            style={
+              colorModeOn
                 ? { backgroundColor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }
                 : showPhoto
                 ? { backgroundColor: onPhotoControlBg, borderColor: onPhotoControlBorder, color: onPhotoControlText }
-                : { backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }),
-            }}
+                : { backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
+            }
             aria-label="Color mode"
+            aria-haspopup="listbox"
+            aria-expanded={colorPickerOpen}
           >
-            <option value="plain">⬜ Default</option>
-            <option value="color">🎨 Color</option>
-          </select>
+            <span>{list.colorMode ? "🎨 Color" : "⬜ Default"}</span>
+            <span style={{ fontSize: "0.7em", opacity: 0.7 }}>▾</span>
+          </button>
 
           <button
             ref={btnRef}
@@ -282,6 +348,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
         </div>
       )}
 
+      {colorPickerPortal}
       {dropdown}
     </div>
   );
