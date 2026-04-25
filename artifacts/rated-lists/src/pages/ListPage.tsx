@@ -444,13 +444,17 @@ export default function ListPage({ params }: Props) {
 
         {/* Top bar: back + right buttons */}
         <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigate(backPath, { replace: true })}
-            className="flex items-center gap-1 text-primary text-sm hover:opacity-70 transition-opacity"
-          >
-            <span className="text-lg leading-none">‹</span>
-            <span>{backLabel}</span>
-          </button>
+          {previewMode ? (
+            <span />
+          ) : (
+            <button
+              onClick={() => navigate(backPath, { replace: true })}
+              className="flex items-center gap-1 text-primary text-sm hover:opacity-70 transition-opacity"
+            >
+              <span className="text-lg leading-none">‹</span>
+              <span>{backLabel}</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-1.5">
             {/* Items-per-page stepper — only shown in preview mode */}
@@ -495,37 +499,6 @@ export default function ListPage({ params }: Props) {
               aria-label="List options"
               title="Options"
             >⚙</button>
-
-            {/* Camera / remove-photo button — only shown in preview mode */}
-            {previewMode && (
-              list.coverPhoto ? (
-                <button
-                  onClick={() => removeListPhoto(id)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full border text-sm font-semibold transition-colors hover:opacity-80"
-                  style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }}
-                  aria-label="Remove cover photo"
-                  title="Remove photo"
-                >✕</button>
-              ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-8 h-8 flex items-center justify-center rounded-full border text-base transition-colors hover:opacity-70"
-                  style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
-                  aria-label="Upload cover photo"
-                >📷</button>
-              )
-            )}
-
-            <button
-              onClick={handleTogglePreview}
-              className="text-xs font-medium px-2.5 py-1.5 rounded-full border transition-colors"
-              style={
-                previewMode
-                  ? { backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))", borderColor: "hsl(var(--primary))" }
-                  : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", borderColor: "hsl(var(--border))" }
-              }
-              aria-label="Toggle preview mode"
-            >{previewMode ? "✕ Exit" : "▶ Preview"}</button>
 
           </div>
         </div>
@@ -1037,8 +1010,38 @@ export default function ListPage({ params }: Props) {
               borderColor: "hsl(var(--popover-border))",
             }}
           >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOptionsOpen(false);
+                handleTogglePreview();
+              }}
+              className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              <span>Preview mode</span>
+              <ToggleSwitch on={previewMode} />
+            </button>
             {previewMode ? (
               <>
+                <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (list.coverPhoto) {
+                      removeListPhoto(id);
+                    } else {
+                      setOptionsOpen(false);
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  <span>Cover photo</span>
+                  <ToggleSwitch on={!!list.coverPhoto} />
+                </button>
+                <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowIntro((v) => !v); }}
                   className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
@@ -1058,14 +1061,17 @@ export default function ListPage({ params }: Props) {
                 </button>
               </>
             ) : (
-              <button
-                onClick={(e) => { e.stopPropagation(); setUseAverageRating(id, !useAvg); }}
-                className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
-                style={{ color: "hsl(var(--foreground))" }}
-              >
-                <span>Average rating</span>
-                <ToggleSwitch on={useAvg} />
-              </button>
+              <>
+                <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setUseAverageRating(id, !useAvg); }}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  <span>Average rating</span>
+                  <ToggleSwitch on={useAvg} />
+                </button>
+              </>
             )}
           </div>
         </>,
