@@ -47,6 +47,7 @@ export default function ListPage({ params }: Props) {
   const [previewMode, setPreviewMode] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [showRating, setShowRating] = useState(true);
+  const [fullScreen, setFullScreen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [optionsPos, setOptionsPos] = useState({ top: 0, right: 0 });
   const optionsBtnRef = useRef<HTMLButtonElement>(null);
@@ -190,7 +191,10 @@ export default function ListPage({ params }: Props) {
   const measureItems = displayedItems.slice(0, Math.min(itemsPerPage, displayedItems.length));
 
   function handleTogglePreview() {
-    setPreviewMode((v) => !v);
+    setPreviewMode((v) => {
+      if (v) setFullScreen(false);
+      return !v;
+    });
   }
 
   function startManualRatingEdit() {
@@ -444,7 +448,7 @@ export default function ListPage({ params }: Props) {
 
         {/* Top bar: back + right buttons */}
         <div className="flex items-center justify-between mb-6">
-          {previewMode ? (
+          {previewMode || fullScreen ? (
             <span />
           ) : (
             <button
@@ -457,49 +461,73 @@ export default function ListPage({ params }: Props) {
           )}
 
           <div className="flex items-center gap-1.5">
-            {/* Items-per-page stepper — only shown in preview mode */}
-            {previewMode && (
-              <div
-                className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
-                style={{
-                  borderColor: "hsl(var(--border))",
-                  backgroundColor: "hsl(var(--muted))",
-                  color: "hsl(var(--foreground))",
-                }}
-              >
+            {fullScreen ? (
+              <button
+                onClick={() => setFullScreen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full border text-base transition-colors hover:opacity-80"
+                style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                aria-label="Exit full screen"
+                title="Exit full screen"
+              >✕</button>
+            ) : (
+              <>
+                {/* Items-per-page stepper — only shown in preview mode */}
+                {previewMode && (
+                  <div
+                    className="flex items-center rounded-full border overflow-hidden text-xs font-semibold select-none"
+                    style={{
+                      borderColor: "hsl(var(--border))",
+                      backgroundColor: "hsl(var(--muted))",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  >
+                    <button
+                      onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
+                      disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
+                      className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                      aria-label="Fewer items per page"
+                    >−</button>
+                    <span className="px-1 tabular-nums">{itemsPerPage}</span>
+                    <button
+                      onClick={() => setItemsPerPage((n) => Math.min(MAX_ITEMS_PER_PAGE, n + 1))}
+                      disabled={itemsPerPage >= MAX_ITEMS_PER_PAGE}
+                      className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
+                      aria-label="More items per page"
+                    >+</button>
+                  </div>
+                )}
+
+                {/* Options menu — available in both view & preview modes */}
                 <button
-                  onClick={() => setItemsPerPage((n) => Math.max(MIN_ITEMS_PER_PAGE, n - 1))}
-                  disabled={itemsPerPage <= MIN_ITEMS_PER_PAGE}
-                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
-                  aria-label="Fewer items per page"
-                >−</button>
-                <span className="px-1 tabular-nums">{itemsPerPage}</span>
+                  ref={optionsBtnRef}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect = optionsBtnRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setOptionsPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+                    }
+                    setOptionsOpen((v) => !v);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full border text-sm transition-colors hover:opacity-80"
+                  style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
+                  aria-label="List options"
+                  title="Options"
+                >⚙</button>
+
+                {/* Preview / Exit button — standalone toggle */}
                 <button
-                  onClick={() => setItemsPerPage((n) => Math.min(MAX_ITEMS_PER_PAGE, n + 1))}
-                  disabled={itemsPerPage >= MAX_ITEMS_PER_PAGE}
-                  className="w-7 h-7 flex items-center justify-center text-base leading-none transition-opacity disabled:opacity-30 hover:opacity-70 active:scale-95"
-                  aria-label="More items per page"
-                >+</button>
-              </div>
+                  onClick={handleTogglePreview}
+                  className="h-8 px-3 inline-flex items-center justify-center rounded-full border text-xs font-semibold transition-colors hover:opacity-80"
+                  style={{
+                    backgroundColor: previewMode ? "hsl(var(--primary))" : "hsl(var(--muted))",
+                    borderColor: previewMode ? "hsl(var(--primary))" : "hsl(var(--border))",
+                    color: previewMode ? "hsl(var(--primary-foreground))" : "hsl(var(--foreground))",
+                  }}
+                  aria-label={previewMode ? "Exit preview" : "Preview"}
+                  title={previewMode ? "Exit preview" : "Preview"}
+                >{previewMode ? "✕ Exit" : "▶ Preview"}</button>
+              </>
             )}
-
-            {/* Options menu — available in both view & preview modes */}
-            <button
-              ref={optionsBtnRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                const rect = optionsBtnRef.current?.getBoundingClientRect();
-                if (rect) {
-                  setOptionsPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-                }
-                setOptionsOpen((v) => !v);
-              }}
-              className="w-8 h-8 flex items-center justify-center rounded-full border text-sm transition-colors hover:opacity-80"
-              style={{ backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))" }}
-              aria-label="List options"
-              title="Options"
-            >⚙</button>
-
           </div>
         </div>
 
@@ -571,13 +599,13 @@ export default function ListPage({ params }: Props) {
                 onClick={startDescEdit}
                 title="Tap to edit description"
               >{list.description}</p>
-            ) : (
+            ) : !fullScreen ? (
               <button
                 onClick={startDescEdit}
                 className="text-sm font-medium transition-opacity hover:opacity-60"
                 style={{ color: "hsl(var(--foreground) / 0.65)" }}
               >+ description</button>
-            )}
+            ) : null}
           </div>
         ) : previewMode ? (
           /* Item-page preview header: compact title + avg */
@@ -793,7 +821,7 @@ export default function ListPage({ params }: Props) {
                 onClick={startNoteEdit}
                 title="Tap to edit note"
               >{list.note}</p>
-            ) : (
+            ) : !fullScreen ? (
               <div className="flex justify-center">
                 <button
                   onClick={startNoteEdit}
@@ -801,7 +829,7 @@ export default function ListPage({ params }: Props) {
                   style={{ color: "hsl(var(--foreground) / 0.65)" }}
                 >+ note</button>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -1010,21 +1038,8 @@ export default function ListPage({ params }: Props) {
               borderColor: "hsl(var(--popover-border))",
             }}
           >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setOptionsOpen(false);
-                handleTogglePreview();
-              }}
-              className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
-              style={{ color: "hsl(var(--foreground))" }}
-            >
-              <span>Preview mode</span>
-              <ToggleSwitch on={previewMode} />
-            </button>
             {previewMode ? (
               <>
-                <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1059,19 +1074,29 @@ export default function ListPage({ params }: Props) {
                   <span>Show overall rating</span>
                   <ToggleSwitch on={showRating} />
                 </button>
-              </>
-            ) : (
-              <>
                 <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
                 <button
-                  onClick={(e) => { e.stopPropagation(); setUseAverageRating(id, !useAvg); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOptionsOpen(false);
+                    setFullScreen((v) => !v);
+                  }}
                   className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
                   style={{ color: "hsl(var(--foreground))" }}
                 >
-                  <span>Average rating</span>
-                  <ToggleSwitch on={useAvg} />
+                  <span>Full screen</span>
+                  <ToggleSwitch on={fullScreen} />
                 </button>
               </>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); setUseAverageRating(id, !useAvg); }}
+                className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                style={{ color: "hsl(var(--foreground))" }}
+              >
+                <span>Average rating</span>
+                <ToggleSwitch on={useAvg} />
+              </button>
             )}
           </div>
         </>,
