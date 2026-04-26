@@ -47,6 +47,7 @@ export default function ListPage({ params }: Props) {
   const [previewMode, setPreviewMode] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [showRating, setShowRating] = useState(true);
+  const [showDescription, setShowDescription] = useState(true);
   const [fullScreen, setFullScreen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [optionsPos, setOptionsPos] = useState({ top: 0, right: 0 });
@@ -572,40 +573,42 @@ export default function ListPage({ params }: Props) {
             )}
 
             {/* Description — synced with the edit-mode description field */}
-            {editingDesc ? (
-              <div className="w-full flex flex-col gap-2">
-                <textarea
-                  ref={descRef}
-                  value={descValue}
-                  onChange={(e) => setDescValue(e.target.value)}
-                  onKeyDown={handleDescKey}
-                  placeholder="Add a description…"
-                  rows={3}
-                  className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
-                  style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.92)" }}
-                />
-                <div className="flex justify-center">
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); commitDescEdit(); }}
-                    className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
-                  >Done</button>
+            {showDescription && (
+              editingDesc ? (
+                <div className="w-full flex flex-col gap-2">
+                  <textarea
+                    ref={descRef}
+                    value={descValue}
+                    onChange={(e) => setDescValue(e.target.value)}
+                    onKeyDown={handleDescKey}
+                    placeholder="Add a description…"
+                    rows={3}
+                    className="w-full text-sm bg-transparent border-b outline-none resize-none text-center placeholder:opacity-40"
+                    style={{ borderColor: "hsl(var(--border))", color: "hsl(var(--foreground) / 0.92)" }}
+                  />
+                  <div className="flex justify-center">
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); commitDescEdit(); }}
+                      className="text-xs font-semibold px-3 py-1 rounded-full transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
+                    >Done</button>
+                  </div>
                 </div>
-              </div>
-            ) : list.description ? (
-              <p
-                className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
-                style={{ color: "hsl(var(--foreground))" }}
-                onClick={startDescEdit}
-                title="Tap to edit description"
-              >{list.description}</p>
-            ) : !fullScreen ? (
-              <button
-                onClick={startDescEdit}
-                className="text-sm font-medium transition-opacity hover:opacity-60"
-                style={{ color: "hsl(var(--foreground) / 0.65)" }}
-              >+ description</button>
-            ) : null}
+              ) : list.description ? (
+                <p
+                  className="text-base cursor-pointer hover:opacity-70 transition-opacity whitespace-pre-wrap text-center px-2"
+                  style={{ color: "hsl(var(--foreground))" }}
+                  onClick={startDescEdit}
+                  title="Tap to edit description"
+                >{list.description}</p>
+              ) : !fullScreen ? (
+                <button
+                  onClick={startDescEdit}
+                  className="text-sm font-medium transition-opacity hover:opacity-60"
+                  style={{ color: "hsl(var(--foreground) / 0.65)" }}
+                >+ description</button>
+              ) : null
+            )}
           </div>
         ) : previewMode ? (
           /* Item-page preview header: compact title + avg */
@@ -1073,6 +1076,15 @@ export default function ListPage({ params }: Props) {
                 >
                   <span>Show overall rating</span>
                   <ToggleSwitch on={showRating} />
+                </button>
+                <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowDescription((v) => !v); }}
+                  className="w-full px-4 py-3 text-sm text-left flex items-center justify-between gap-3 active:opacity-60 hover:opacity-80"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  <span>Show description</span>
+                  <ToggleSwitch on={showDescription} />
                 </button>
                 <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
                 <button

@@ -50,9 +50,14 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const onPhotoMenuIcon = photoLight ? "rgba(20,20,25,0.70)" : "rgba(255,255,255,0.70)";
   const onPhotoBadgeBg = photoLight ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.25)";
   const photoFallbackBg = photoLight ? "#eee" : "#222";
-  const avg = list.items.length > 0 ? averageRating(list.items) : null;
-  const avgLabel = avg !== null ? (avg % 1 === 0 ? String(avg) : avg.toFixed(1)) : null;
-  const ratingColor = avg !== null ? ratingToColor(avg) : null;
+  const useAvg = list.useAverageRating !== false; // default true — matches ListPage
+  const displayedRating: number | null = useAvg
+    ? (list.items.length > 0 ? averageRating(list.items) : null)
+    : (typeof list.manualOverallRating === "number" ? list.manualOverallRating : null);
+  const avgLabel = displayedRating !== null
+    ? (displayedRating % 1 === 0 ? String(displayedRating) : displayedRating.toFixed(1))
+    : null;
+  const ratingColor = displayedRating !== null ? ratingToColor(displayedRating) : null;
 
 
   function openMenu(e: React.MouseEvent) {
