@@ -17,11 +17,6 @@ function averageRating(items: ListItem[]): number {
   return items.reduce((sum, item) => sum + item.rating, 0) / items.length;
 }
 
-function averageColor(items: ListItem[]): string {
-  if (items.length === 0) return "";
-  return ratingToColor(averageRating(items), 26);
-}
-
 export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToList, scale = 1 }: Props) {
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -33,9 +28,13 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const btnRef = useRef<HTMLButtonElement>(null);
   const colorPickerBtnRef = useRef<HTMLButtonElement>(null);
 
-  const colorModeOn = list.colorMode && list.items.length > 0;
+  const useAvg = list.useAverageRating !== false; // default true — matches ListPage
+  const displayedRating: number | null = useAvg
+    ? (list.items.length > 0 ? averageRating(list.items) : null)
+    : (typeof list.manualOverallRating === "number" ? list.manualOverallRating : null);
+  const colorModeOn = !!list.colorMode && displayedRating !== null;
   const showPhoto = !!list.coverPhoto && !colorModeOn;
-  const bgColor = colorModeOn ? averageColor(list.items) : undefined;
+  const bgColor = colorModeOn ? ratingToColor(displayedRating!, 26) : undefined;
   // When the photo backdrop is on, adapt overlay/text to the UI theme so the card
   // matches the surrounding light/dark UI brightness instead of forcing a dark look.
   const photoLight = showPhoto && isLight;
@@ -50,10 +49,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const onPhotoMenuIcon = photoLight ? "rgba(20,20,25,0.70)" : "rgba(255,255,255,0.70)";
   const onPhotoBadgeBg = photoLight ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.25)";
   const photoFallbackBg = photoLight ? "#eee" : "#222";
-  const useAvg = list.useAverageRating !== false; // default true — matches ListPage
-  const displayedRating: number | null = useAvg
-    ? (list.items.length > 0 ? averageRating(list.items) : null)
-    : (typeof list.manualOverallRating === "number" ? list.manualOverallRating : null);
   const avgLabel = displayedRating !== null
     ? (displayedRating % 1 === 0 ? String(displayedRating) : displayedRating.toFixed(1))
     : null;

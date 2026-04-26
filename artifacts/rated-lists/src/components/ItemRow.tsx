@@ -29,6 +29,7 @@ export function ItemRow({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [ratingError, setRatingError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,14 +59,28 @@ export function ItemRow({
     e.stopPropagation();
     if (preview || renaming) return;
     setInputValue(fmt(item.rating));
+    setRatingError(null);
     setPickerOpen((v) => !v);
   }
 
   function applyRating() {
-    const n = parseFloat(inputValue);
-    if (!isNaN(n) && n >= 0 && n <= 10) {
-      onRatingChange(Math.round(n * 10) / 10);
+    const normalized = inputValue.replace(",", ".").trim();
+    if (normalized === "") {
+      setPickerOpen(false);
+      setRatingError(null);
+      return;
     }
+    const n = parseFloat(normalized);
+    if (isNaN(n)) {
+      setRatingError("Please enter a number between 0 and 10");
+      return;
+    }
+    if (n < 0 || n > 10) {
+      setRatingError("Rating must be between 0 and 10");
+      return;
+    }
+    onRatingChange(Math.round(n * 10) / 10);
+    setRatingError(null);
     setPickerOpen(false);
   }
 
@@ -208,33 +223,39 @@ export function ItemRow({
       {/* Inline decimal rating input */}
       {pickerOpen && (
         <div
-          className="flex items-center gap-2 px-3 pb-3"
+          className="flex flex-col gap-1.5 px-3 pb-3"
           style={{ backgroundColor: "rgba(0,0,0,0.2)" }}
         >
-          <input
-            ref={inputRef}
-            type="number"
-            min={0}
-            max={10}
-            step={0.1}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleRatingKey}
-            placeholder="0 – 10"
-            className="flex-1 rounded-lg px-3 py-2 text-sm font-semibold outline-none min-w-0"
-            style={{
-              backgroundColor: s.inputBg,
-              border: `1.5px solid ${s.inputBorder}`,
-              color: s.inputText,
-            }}
-          />
-          <button
-            onClick={applyRating}
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ backgroundColor: s.confirmBg, color: s.confirmFg }}
-          >
-            Set
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*[.,]?[0-9]*"
+              value={inputValue}
+              onChange={(e) => { setInputValue(e.target.value); if (ratingError) setRatingError(null); }}
+              onKeyDown={handleRatingKey}
+              placeholder="0 – 10"
+              className="flex-1 rounded-lg px-3 py-2 text-sm font-semibold outline-none min-w-0"
+              style={{
+                backgroundColor: s.inputBg,
+                border: `1.5px solid ${ratingError ? "#ef4444" : s.inputBorder}`,
+                color: s.inputText,
+              }}
+            />
+            <button
+              onClick={applyRating}
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ backgroundColor: s.confirmBg, color: s.confirmFg }}
+            >
+              Set
+            </button>
+          </div>
+          {ratingError && (
+            <p className="text-xs font-medium" style={{ color: "#fca5a5" }}>
+              {ratingError}
+            </p>
+          )}
         </div>
       )}
     </div>

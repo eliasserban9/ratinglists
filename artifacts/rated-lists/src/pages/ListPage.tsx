@@ -54,6 +54,7 @@ export default function ListPage({ params }: Props) {
   const optionsBtnRef = useRef<HTMLButtonElement>(null);
   const [editingManualRating, setEditingManualRating] = useState(false);
   const [manualRatingInput, setManualRatingInput] = useState("");
+  const [manualRatingError, setManualRatingError] = useState<string | null>(null);
   const manualRatingRef = useRef<HTMLInputElement>(null);
   const [pageScale, setPageScale] = useState(1);
   const [naturalHeight, setNaturalHeight] = useState(0);
@@ -203,20 +204,30 @@ export default function ListPage({ params }: Props) {
     setManualRatingInput(
       typeof list.manualOverallRating === "number" ? fmt(list.manualOverallRating) : ""
     );
+    setManualRatingError(null);
     setEditingManualRating(true);
     setTimeout(() => manualRatingRef.current?.focus(), 30);
   }
 
   function commitManualRating() {
-    const trimmed = manualRatingInput.trim();
-    if (trimmed === "") {
+    const normalized = manualRatingInput.replace(",", ".").trim();
+    if (normalized === "") {
       setManualOverallRating(id, undefined);
-    } else {
-      const n = parseFloat(trimmed);
-      if (!isNaN(n) && n >= 0 && n <= 10) {
-        setManualOverallRating(id, Math.round(n * 10) / 10);
-      }
+      setManualRatingError(null);
+      setEditingManualRating(false);
+      return;
     }
+    const n = parseFloat(normalized);
+    if (isNaN(n)) {
+      setManualRatingError("Please enter a number between 0 and 10");
+      return;
+    }
+    if (n < 0 || n > 10) {
+      setManualRatingError("Rating must be between 0 and 10");
+      return;
+    }
+    setManualOverallRating(id, Math.round(n * 10) / 10);
+    setManualRatingError(null);
     setEditingManualRating(false);
   }
 
@@ -679,29 +690,35 @@ export default function ListPage({ params }: Props) {
 
             {/* Overall rating badge */}
             {editingManualRating && !useAvg ? (
-              <div className="inline-flex items-center gap-2 mb-2">
-                <input
-                  ref={manualRatingRef}
-                  type="number"
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  value={manualRatingInput}
-                  onChange={(e) => setManualRatingInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitManualRating();
-                    if (e.key === "Escape") setEditingManualRating(false);
-                  }}
-                  onBlur={commitManualRating}
-                  placeholder="0 – 10"
-                  className="w-24 rounded-lg px-2.5 py-1 text-base font-semibold outline-none border"
-                  style={{
-                    backgroundColor: "hsl(var(--muted))",
-                    borderColor: "hsl(var(--primary))",
-                    color: "hsl(var(--foreground))",
-                  }}
-                />
-                <span className="text-xs font-medium text-muted-foreground">rating</span>
+              <div className="inline-flex flex-col items-start gap-1 mb-2">
+                <div className="inline-flex items-center gap-2">
+                  <input
+                    ref={manualRatingRef}
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
+                    value={manualRatingInput}
+                    onChange={(e) => { setManualRatingInput(e.target.value); if (manualRatingError) setManualRatingError(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitManualRating();
+                      if (e.key === "Escape") { setManualRatingError(null); setEditingManualRating(false); }
+                    }}
+                    onBlur={commitManualRating}
+                    placeholder="0 – 10"
+                    className="w-24 rounded-lg px-2.5 py-1 text-base font-semibold outline-none border"
+                    style={{
+                      backgroundColor: "hsl(var(--muted))",
+                      borderColor: manualRatingError ? "#ef4444" : "hsl(var(--primary))",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <span className="text-xs font-medium text-muted-foreground">rating</span>
+                </div>
+                {manualRatingError && (
+                  <p className="text-xs font-medium" style={{ color: "#fca5a5" }}>
+                    {manualRatingError}
+                  </p>
+                )}
               </div>
             ) : avgColors && avg !== null ? (
               <button
