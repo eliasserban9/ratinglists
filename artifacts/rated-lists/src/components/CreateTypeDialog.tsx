@@ -36,11 +36,12 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
   const [type, setType] = useState<CreateType>("list");
   const [title, setTitle] = useState("");
   const [ratingStr, setRatingStr] = useState("5");
+  const [ratingError, setRatingError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const ratingRef = useRef<HTMLInputElement>(null);
 
   const parsedRating = (() => {
-    const n = parseFloat(ratingStr);
+    const n = parseFloat(ratingStr.replace(",", "."));
     return !isNaN(n) && n >= 0 && n <= 10 ? Math.round(n * 10) / 10 : null;
   })();
 
@@ -49,6 +50,7 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
       setStep("pick");
       setTitle("");
       setRatingStr("5");
+      setRatingError(null);
     }
   }, [open]);
 
@@ -64,8 +66,25 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
-    const finalRating = parsedRating ?? 5;
-    onCreate(type, title.trim(), type === "item" ? finalRating : undefined);
+    if (type === "item") {
+      const normalized = ratingStr.replace(",", ".").trim();
+      if (normalized === "") {
+        setRatingError("Please enter a rating between 0 and 10");
+        return;
+      }
+      const n = parseFloat(normalized);
+      if (isNaN(n)) {
+        setRatingError("Please enter a number between 0 and 10");
+        return;
+      }
+      if (n < 0 || n > 10) {
+        setRatingError("Rating must be between 0 and 10");
+        return;
+      }
+      onCreate(type, title.trim(), Math.round(n * 10) / 10);
+    } else {
+      onCreate(type, title.trim(), undefined);
+    }
     onClose();
   }
 
@@ -152,21 +171,26 @@ export function CreateTypeDialog({ open, onClose, onCreate }: Props) {
                   </div>
                   <input
                     ref={ratingRef}
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    min={0}
-                    max={10}
-                    step={0.1}
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={ratingStr}
-                    onChange={(e) => setRatingStr(e.target.value)}
+                    onChange={(e) => { setRatingStr(e.target.value); if (ratingError) setRatingError(null); }}
                     placeholder="e.g. 7.5"
                     className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-sm font-semibold text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/40"
                     style={
-                      parsedRating !== null
+                      ratingError
+                        ? { borderColor: "#ef4444", boxShadow: "0 0 0 1px rgba(239,68,68,0.2)" }
+                        : parsedRating !== null
                         ? { borderColor: ratingColor, boxShadow: `0 0 0 1px ${ratingColor}22` }
                         : undefined
                     }
                   />
+                  {ratingError && (
+                    <p className="mt-1.5 text-xs font-medium" style={{ color: "#fca5a5" }}>
+                      {ratingError}
+                    </p>
+                  )}
                 </div>
               )}
 
