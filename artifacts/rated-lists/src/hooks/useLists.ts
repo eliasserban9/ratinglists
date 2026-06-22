@@ -176,8 +176,6 @@ export function useLists() {
     queryFn: fetchUserData,
     staleTime: Infinity,
     retry: 1,
-    initialData: loadCache,
-    initialDataUpdatedAt: 0,
   });
 
   const data: StoredData = queryData ?? EMPTY;
