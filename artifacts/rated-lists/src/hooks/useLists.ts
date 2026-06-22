@@ -590,11 +590,7 @@ export function useLists() {
       const normalized = normalize(incoming);
       queryClient.setQueryData(USER_DATA_KEY, normalized);
       saveCache(normalized);
-      fetch("/api/user-data", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(normalized),
-      }).catch(() => {});
+      doSave(normalized);
     },
     [queryClient]
   );
