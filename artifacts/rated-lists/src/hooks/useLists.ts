@@ -66,6 +66,7 @@ const USER_DATA_KEY = ["user-data"];
 const CACHE_KEY = "rated-lists-server-cache";
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingData: StoredData | null = null;
 
 function loadCache(): StoredData | undefined {
   try {
@@ -102,24 +103,54 @@ function normalize(raw: Partial<StoredData>): StoredData {
   };
 }
 
+function doSave(data: StoredData) {
+  fetch("/api/user-data", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 async function fetchUserData(): Promise<StoredData> {
   const r = await fetch("/api/user-data");
   if (!r.ok) throw new Error("Failed to load user data");
   const fresh = normalize(await r.json());
+  const cached = loadCache();
+  const serverIsEmpty =
+    fresh.lists.length === 0 &&
+    fresh.categories.length === 0 &&
+    fresh.standaloneItems.length === 0;
+  const cacheHasData =
+    cached &&
+    (cached.lists.length > 0 ||
+      cached.categories.length > 0 ||
+      cached.standaloneItems.length > 0);
+  if (serverIsEmpty && cacheHasData) {
+    doSave(cached!);
+    return cached!;
+  }
   saveCache(fresh);
   return fresh;
 }
 
 function scheduleSave(data: StoredData) {
   saveCache(data);
+  pendingData = data;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    fetch("/api/user-data", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).catch(() => {});
+    pendingData = null;
+    doSave(data);
   }, 800);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    if (pendingData) {
+      doSave(pendingData);
+      pendingData = null;
+    }
+  });
 }
 
 function uid() {
