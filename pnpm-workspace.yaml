@@ -27,6 +27,9 @@
 # ============================================================================
 minimumReleaseAge: 1440
 
+minimumReleaseAgeExclude:
+  - '@clerk/shared'
+
 packages:
   - artifacts/*
   - lib/*
@@ -67,6 +70,8 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # clerk/shared@4.4.0 is blocked by Replit's package firewall; use local copy
+  "@clerk/shared": "file:./local-packages/clerk-shared"
   # replit uses linux-x64 only, we can exclude all other platforms
   "esbuild>@esbuild/darwin-arm64": "-"
   "esbuild>@esbuild/darwin-x64": "-"
