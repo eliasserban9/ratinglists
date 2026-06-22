@@ -64,9 +64,9 @@ export const TRASH_TTL = 24 * 60 * 60 * 1000;
 const EMPTY: StoredData = { lists: [], categories: [], standaloneItems: [], trash: [] };
 const USER_DATA_KEY = ["user-data"];
 const CACHE_KEY = "rated-lists-server-cache";
+const DIRTY_KEY = "rated-lists-dirty";
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingData: StoredData | null = null;
 
 function loadCache(): StoredData | undefined {
   try {
@@ -82,6 +82,18 @@ function saveCache(data: StoredData) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
   } catch {}
+}
+
+function markDirty() {
+  try { localStorage.setItem(DIRTY_KEY, "1"); } catch {}
+}
+
+function clearDirty() {
+  try { localStorage.removeItem(DIRTY_KEY); } catch {}
+}
+
+function isDirty() {
+  return localStorage.getItem(DIRTY_KEY) === "1";
 }
 
 function purgeExpired(trash: TrashItem[]): TrashItem[] {
@@ -103,24 +115,28 @@ function normalize(raw: Partial<StoredData>): StoredData {
   };
 }
 
-function doSave(data: StoredData, keepalive = false): Promise<boolean> {
-  const body = JSON.stringify(data);
-  const useKeepalive = keepalive && body.length < 60_000;
+function doSave(data: StoredData): Promise<boolean> {
   return fetch("/api/user-data", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: useKeepalive,
+    body: JSON.stringify(data),
   })
-    .then((r) => r.ok)
+    .then((r) => {
+      if (r.ok) clearDirty();
+      return r.ok;
+    })
     .catch(() => false);
 }
 
 async function fetchUserData(): Promise<StoredData> {
+  const cached = loadCache();
+  if (isDirty() && cached) {
+    doSave(cached);
+    return cached;
+  }
   const r = await fetch("/api/user-data");
   if (!r.ok) throw new Error("Failed to load user data");
   const fresh = normalize(await r.json());
-  const cached = loadCache();
   const serverIsEmpty =
     fresh.lists.length === 0 &&
     fresh.categories.length === 0 &&
@@ -140,21 +156,11 @@ async function fetchUserData(): Promise<StoredData> {
 
 function scheduleSave(data: StoredData) {
   saveCache(data);
-  pendingData = data;
+  markDirty();
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    pendingData = null;
     doSave(data);
   }, 800);
-}
-
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
-    if (pendingData) {
-      doSave(pendingData, true);
-      pendingData = null;
-    }
-  });
 }
 
 function uid() {
@@ -594,9 +600,8 @@ export function useLists() {
       const normalized = normalize(incoming);
       queryClient.setQueryData(USER_DATA_KEY, normalized);
       saveCache(normalized);
-      pendingData = normalized;
+      markDirty();
       const ok = await doSave(normalized);
-      if (ok) pendingData = null;
       return ok;
     },
     [queryClient]
