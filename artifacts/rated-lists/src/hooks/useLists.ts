@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface ListItem {
@@ -126,14 +126,21 @@ function normalize(raw: Partial<StoredData>): StoredData {
   };
 }
 
+// Save-status listeners — lets components react to save success/failure
+type SaveListener = (ok: boolean) => void;
+const saveListeners = new Set<SaveListener>();
+function notifySaveListeners(ok: boolean) {
+  saveListeners.forEach((fn) => fn(ok));
+}
+
 function doSave(data: StoredData): Promise<boolean> {
   return fetch("/api/user-data", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   })
-    .then((r) => { if (r.ok) clearDirty(); return r.ok; })
-    .catch(() => false);
+    .then((r) => { if (r.ok) clearDirty(); notifySaveListeners(r.ok); return r.ok; })
+    .catch(() => { notifySaveListeners(false); return false; });
 }
 
 async function fetchUserData(): Promise<StoredData> {
@@ -670,4 +677,15 @@ export function useLists() {
     copyItemsToLists,
     allLists: data.lists,
   };
+}
+
+/** Tracks whether the last server save succeeded. */
+export function useSaveStatus() {
+  const [saveError, setSaveError] = useState(false);
+  useEffect(() => {
+    const listener: SaveListener = (ok) => setSaveError(!ok);
+    saveListeners.add(listener);
+    return () => { saveListeners.delete(listener); };
+  }, []);
+  return { saveError };
 }

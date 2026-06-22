@@ -4,6 +4,7 @@ import { ClerkProvider, SignIn, SignUp, useClerk, useAuth } from "@clerk/react";
 import { useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import ListPage from "@/pages/ListPage";
@@ -111,6 +112,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
+          <OfflineBanner />
           <Router />
           <Toaster />
         </TooltipProvider>
