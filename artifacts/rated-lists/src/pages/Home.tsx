@@ -71,15 +71,19 @@ export default function Home() {
 
   function handleUpload(file: File) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const parsed = JSON.parse(e.target?.result as string);
         if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.lists)) {
           showToast("Invalid file — not a Rating Lists backup.", false);
           return;
         }
-        importData(parsed);
-        showToast("Data imported successfully!", true);
+        const ok = await importData(parsed);
+        if (ok) {
+          showToast("Data imported and saved successfully!", true);
+        } else {
+          showToast("Data imported but failed to save — please try again.", false);
+        }
       } catch {
         showToast("Failed to read file. Make sure it's a valid JSON backup.", false);
       }

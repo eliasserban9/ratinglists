@@ -103,13 +103,17 @@ function normalize(raw: Partial<StoredData>): StoredData {
   };
 }
 
-function doSave(data: StoredData) {
-  fetch("/api/user-data", {
+function doSave(data: StoredData, keepalive = false): Promise<boolean> {
+  const body = JSON.stringify(data);
+  const useKeepalive = keepalive && body.length < 60_000;
+  return fetch("/api/user-data", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    keepalive: true,
-  }).catch(() => {});
+    body,
+    keepalive: useKeepalive,
+  })
+    .then((r) => r.ok)
+    .catch(() => false);
 }
 
 async function fetchUserData(): Promise<StoredData> {
@@ -147,7 +151,7 @@ function scheduleSave(data: StoredData) {
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", () => {
     if (pendingData) {
-      doSave(pendingData);
+      doSave(pendingData, true);
       pendingData = null;
     }
   });
@@ -586,11 +590,14 @@ export function useLists() {
   const getAllData = useCallback(() => data, [data]);
 
   const importData = useCallback(
-    (incoming: StoredData) => {
+    async (incoming: StoredData): Promise<boolean> => {
       const normalized = normalize(incoming);
       queryClient.setQueryData(USER_DATA_KEY, normalized);
       saveCache(normalized);
-      doSave(normalized);
+      pendingData = normalized;
+      const ok = await doSave(normalized);
+      if (ok) pendingData = null;
+      return ok;
     },
     [queryClient]
   );
