@@ -63,38 +63,49 @@ export const TRASH_TTL = 24 * 60 * 60 * 1000;
 
 const EMPTY: StoredData = { lists: [], categories: [], standaloneItems: [], trash: [] };
 const USER_DATA_KEY = ["user-data"];
-const CACHE_KEY = "rated-lists-server-cache";
 const DIRTY_KEY = "rated-lists-dirty";
 
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
+// Dirty flag — tiny, always fits in localStorage
+const markDirty = () => { try { localStorage.setItem(DIRTY_KEY, "1"); } catch {} };
+const clearDirty = () => { try { localStorage.removeItem(DIRTY_KEY); } catch {} };
+const isDirty = () => localStorage.getItem(DIRTY_KEY) === "1";
 
-function loadCache(): StoredData | undefined {
+// Cache — IndexedDB, no size limit (handles files of any size)
+function openCacheDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("rated-lists", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("cache");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveCache(data: StoredData): Promise<void> {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return undefined;
-    return JSON.parse(raw) as StoredData;
+    const db = await openCacheDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("cache", "readwrite");
+      tx.objectStore("cache").put(data, "user-data");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {}
+}
+
+async function loadCache(): Promise<StoredData | undefined> {
+  try {
+    const db = await openCacheDB();
+    return await new Promise<StoredData | undefined>((resolve) => {
+      const req = db.transaction("cache").objectStore("cache").get("user-data");
+      req.onsuccess = () => resolve(req.result ?? undefined);
+      req.onerror = () => resolve(undefined);
+    });
   } catch {
     return undefined;
   }
 }
 
-function saveCache(data: StoredData) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-  } catch {}
-}
-
-function markDirty() {
-  try { localStorage.setItem(DIRTY_KEY, "1"); } catch {}
-}
-
-function clearDirty() {
-  try { localStorage.removeItem(DIRTY_KEY); } catch {}
-}
-
-function isDirty() {
-  return localStorage.getItem(DIRTY_KEY) === "1";
-}
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function purgeExpired(trash: TrashItem[]): TrashItem[] {
   const cutoff = Date.now() - TRASH_TTL;
@@ -121,46 +132,36 @@ function doSave(data: StoredData): Promise<boolean> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   })
-    .then((r) => {
-      if (r.ok) clearDirty();
-      return r.ok;
-    })
+    .then((r) => { if (r.ok) clearDirty(); return r.ok; })
     .catch(() => false);
 }
 
 async function fetchUserData(): Promise<StoredData> {
-  const cached = loadCache();
+  const cached = await loadCache();
   if (isDirty() && cached) {
-    doSave(cached);
+    doSave(cached); // fire-and-forget retry; clears dirty flag on success
     return cached;
   }
   const r = await fetch("/api/user-data");
   if (!r.ok) throw new Error("Failed to load user data");
   const fresh = normalize(await r.json());
   const serverIsEmpty =
-    fresh.lists.length === 0 &&
-    fresh.categories.length === 0 &&
-    fresh.standaloneItems.length === 0;
+    !fresh.lists.length && !fresh.categories.length && !fresh.standaloneItems.length;
   const cacheHasData =
-    cached &&
-    (cached.lists.length > 0 ||
-      cached.categories.length > 0 ||
-      cached.standaloneItems.length > 0);
+    cached && (cached.lists.length > 0 || cached.categories.length > 0 || cached.standaloneItems.length > 0);
   if (serverIsEmpty && cacheHasData) {
     doSave(cached!);
     return cached!;
   }
-  saveCache(fresh);
+  saveCache(fresh); // async, fire-and-forget
   return fresh;
 }
 
 function scheduleSave(data: StoredData) {
-  saveCache(data);
+  saveCache(data); // async, fire-and-forget
   markDirty();
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    doSave(data);
-  }, 800);
+  saveTimer = setTimeout(() => doSave(data), 800);
 }
 
 function uid() {
