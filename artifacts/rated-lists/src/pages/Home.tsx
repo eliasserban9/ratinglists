@@ -138,7 +138,9 @@ export default function Home() {
     ...categories.map((c) => {
       const catLists = getListsForCategory(c.id);
       const ratings = catLists.flatMap((l) => l.items.map((i) => i.rating));
-      return { kind: "category" as const, item: c, sortKey: c.createdAt, avgRating: avgOf(ratings) };
+      const latestListUpdate = catLists.reduce((max, l) => Math.max(max, l.updatedAt ?? l.createdAt), 0);
+      const sortKey = Math.max(c.createdAt, latestListUpdate);
+      return { kind: "category" as const, item: c, sortKey, avgRating: avgOf(ratings) };
     }),
     ...lists.map((l) => ({
       kind: "list" as const,
