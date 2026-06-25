@@ -426,6 +426,7 @@ export default function ListPage({ params }: Props) {
 
 
   const hasPhotoBg = previewMode && !!list.coverPhoto;
+  const hasEditPhotoBanner = !previewMode && !!list.coverPhoto;
 
   // Glass card colours for intro page — adapts to light vs dark background
   const isLightBg = listBg ? bgLightness > 52 : !isDark;
@@ -455,8 +456,25 @@ export default function ListPage({ params }: Props) {
           }} />
         </>
       )}
+      {hasEditPhotoBanner && (
+        <div style={{ position: "relative", height: 180, overflow: "hidden", flexShrink: 0 }}>
+          <div style={{
+            position: "absolute",
+            inset: "-24px",
+            backgroundImage: `url(${list.coverPhoto})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(18px)",
+          }} />
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            backgroundColor: isDark ? "rgba(0,0,0,0.32)" : "rgba(255,255,255,0.28)",
+          }} />
+        </div>
+      )}
       <div style={hasPhotoBg ? { position: "relative", zIndex: 2 } : undefined}>
-      <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
+      <div className={`max-w-lg mx-auto px-4 pb-4 ${hasEditPhotoBanner ? "pt-4" : "pt-10"}`}>
 
         {/* Top bar: back + right buttons */}
         <div className="flex items-center justify-between mb-6">
