@@ -438,16 +438,25 @@ export default function ListPage({ params }: Props) {
       className="min-h-screen"
       style={previewMode
         ? { position: "relative", overflow: "hidden", ...(!hasPhotoBg && listBg ? { backgroundColor: listBg } : {}), ...textVars }
-        : hasEditPhotoBanner
-        ? {
-            paddingBottom: "6rem",
-            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, hsl(var(--background)) 420px), url(${list.coverPhoto})`,
-            backgroundSize: "100% 420px, 100% 420px",
-            backgroundPosition: "top center, top center",
-            backgroundRepeat: "no-repeat, no-repeat",
-          }
-        : { paddingBottom: "6rem" }}
+        : { paddingBottom: "6rem", position: "relative" }}
     >
+      {hasEditPhotoBanner && (
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 440, overflow: "hidden", zIndex: 0, pointerEvents: "none" }}>
+          <div style={{
+            position: "absolute",
+            inset: "-40px",
+            backgroundImage: `url(${list.coverPhoto})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center top",
+            filter: "blur(28px)",
+          }} />
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, hsl(var(--background)) 100%)",
+          }} />
+        </div>
+      )}
       {hasPhotoBg && (
         <>
           <div style={{
@@ -464,7 +473,7 @@ export default function ListPage({ params }: Props) {
           }} />
         </>
       )}
-      <div style={hasPhotoBg ? { position: "relative", zIndex: 2 } : undefined}>
+      <div style={(hasPhotoBg || hasEditPhotoBanner) ? { position: "relative", zIndex: 1 } : undefined}>
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
 
         {/* Top bar: back + right buttons */}
