@@ -632,6 +632,23 @@ export function useLists() {
     [data, persist]
   );
 
+  const copyCategoryItemsToLists = useCallback(
+    (categoryId: string, targetListIds: string[]) => {
+      const categoryLists = data.lists.filter((l) => l.categoryId === categoryId);
+      if (categoryLists.length === 0 || targetListIds.length === 0) return;
+      const now = Date.now();
+      const updatedLists = data.lists.map((list) => {
+        if (!targetListIds.includes(list.id)) return list;
+        const copied = categoryLists.flatMap((src) =>
+          src.items.map((item) => ({ id: uid(), name: item.name, rating: item.rating }))
+        );
+        return { ...list, items: [...list.items, ...copied], updatedAt: now };
+      });
+      persist({ ...data, lists: updatedLists });
+    },
+    [data, persist]
+  );
+
   return {
     loading: isLoading,
     lists: topLevelLists,
@@ -675,6 +692,7 @@ export function useLists() {
     getAllData,
     importData,
     copyItemsToLists,
+    copyCategoryItemsToLists,
     allLists: data.lists,
   };
 }

@@ -2,13 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import type { RatedList } from "@/hooks/useLists";
 
 interface Props {
-  sourceList: RatedList;
+  sourceList?: RatedList;
+  sourceLabel?: string;
+  excludeIds?: string[];
   allLists: RatedList[];
   onClose: () => void;
   onConfirm: (targetIds: string[]) => void;
 }
 
-export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Props) {
+export function CopyToListModal({ sourceList, sourceLabel, excludeIds, allLists, onClose, onConfirm }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -17,7 +19,10 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
     setTimeout(() => searchRef.current?.focus(), 80);
   }, []);
 
-  const targets = allLists.filter((l) => l.id !== sourceList.id);
+  const excluded = excludeIds ?? (sourceList ? [sourceList.id] : []);
+  const displayLabel = sourceLabel ?? sourceList?.title ?? "";
+
+  const targets = allLists.filter((l) => !excluded.includes(l.id));
   const filtered = searchQuery.trim()
     ? targets.filter((l) => l.title.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     : targets;
@@ -51,7 +56,6 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
           maxHeight: "80vh",
         }}
       >
-        {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4 border-b shrink-0"
           style={{ borderColor: "hsl(var(--border))" }}
@@ -59,7 +63,7 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
           <div>
             <p className="font-semibold text-[15px] text-foreground leading-tight">Copy items to…</p>
             <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[220px]">
-              from <span className="font-medium text-foreground">{sourceList.title}</span>
+              from <span className="font-medium text-foreground">{displayLabel}</span>
             </p>
           </div>
           <button
@@ -70,7 +74,6 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
           </button>
         </div>
 
-        {/* Search */}
         {targets.length > 0 && (
           <div className="px-4 pt-3 pb-2 shrink-0">
             <div className="relative">
@@ -103,7 +106,6 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
           </div>
         )}
 
-        {/* List */}
         <div className="overflow-y-auto flex-1">
           {targets.length === 0 ? (
             <div className="flex items-center justify-center py-12">
@@ -127,7 +129,6 @@ export function CopyToListModal({ sourceList, allLists, onClose, onConfirm }: Pr
           )}
         </div>
 
-        {/* Footer */}
         <div
           className="px-5 py-4 border-t shrink-0"
           style={{ borderColor: "hsl(var(--border))" }}

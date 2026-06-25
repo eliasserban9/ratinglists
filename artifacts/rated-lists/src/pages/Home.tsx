@@ -20,6 +20,7 @@ export default function Home() {
   const [trashOpen, setTrashOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("added");
   const [copySourceListId, setCopySourceListId] = useState<string | null>(null);
+  const [copyCategoryId, setCopyCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const { theme, toggle } = useTheme();
@@ -42,6 +43,7 @@ export default function Home() {
     getAllData,
     importData,
     copyItemsToLists,
+    copyCategoryItemsToLists,
     allLists,
   } = useLists();
   const [, navigate] = useLocation();
@@ -280,6 +282,7 @@ export default function Home() {
                     lists={getListsForCategory(item.id)}
                     onClick={() => navigate(`/category/${item.id}`)}
                     onDelete={() => deleteCategory(item.id)}
+                    onAddToList={() => setCopyCategoryId(item.id)}
                   />
                 );
               }
@@ -328,6 +331,21 @@ export default function Home() {
       )}
 
       <TrashModal open={trashOpen} onClose={() => setTrashOpen(false)} />
+      {copyCategoryId && (() => {
+        const cat = categories.find((c) => c.id === copyCategoryId);
+        if (!cat) return null;
+        return (
+          <CopyToListModal
+            sourceLabel={`${cat.title} (all lists)`}
+            allLists={allLists}
+            onClose={() => setCopyCategoryId(null)}
+            onConfirm={(targetIds) => {
+              copyCategoryItemsToLists(copyCategoryId, targetIds);
+              showToast(`Copied to ${targetIds.length} list${targetIds.length === 1 ? "" : "s"}`, true);
+            }}
+          />
+        );
+      })()}
       {copySourceListId && (() => {
         const src = allLists.find((l) => l.id === copySourceListId);
         if (!src) return null;

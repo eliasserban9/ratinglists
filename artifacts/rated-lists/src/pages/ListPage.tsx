@@ -79,6 +79,7 @@ export default function ListPage({ params }: Props) {
 
   const list = getList(id);
 
+  useEffect(() => { window.scrollTo(0, 0); }, []);
   useEffect(() => { document.body.dataset.page = "list"; }, []);
 
   useEffect(() => {
