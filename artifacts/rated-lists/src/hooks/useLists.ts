@@ -634,7 +634,9 @@ export function useLists() {
 
   const copyCategoryItemsToLists = useCallback(
     (categoryId: string, targetListIds: string[]) => {
-      const categoryLists = data.lists.filter((l) => l.categoryId === categoryId);
+      const categoryLists = data.lists
+        .filter((l) => l.categoryId === categoryId)
+        .sort((a, b) => a.createdAt - b.createdAt);
       if (categoryLists.length === 0 || targetListIds.length === 0) return;
       const now = Date.now();
       const updatedLists = data.lists.map((list) => {
