@@ -133,6 +133,12 @@ function notifySaveListeners(ok: boolean) {
   saveListeners.forEach((fn) => fn(ok));
 }
 
+// Track latest data so connectivity recovery can trigger a retry without user action
+let latestData: StoredData | null = null;
+function retryPendingSave() {
+  if (isDirty() && latestData) doSave(latestData);
+}
+
 function doSave(data: StoredData): Promise<boolean> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
@@ -168,6 +174,7 @@ async function fetchUserData(): Promise<StoredData> {
 }
 
 function scheduleSave(data: StoredData) {
+  latestData = data;
   saveCache(data); // async, fire-and-forget
   markDirty();
   if (saveTimer) clearTimeout(saveTimer);
@@ -729,5 +736,37 @@ export function useSaveStatus() {
   }, []);
 
   const saveError = consecutiveFailures >= 1;
+
+  // While in error state: poll healthz every 4s + react instantly to the
+  // browser "online" event. Either path calls retryPendingSave() which does a
+  // real PUT → the save listener above handles the state transition naturally.
+  useEffect(() => {
+    if (!saveError) return;
+
+    let cancelled = false;
+
+    async function check() {
+      if (cancelled) return;
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 4000);
+      try {
+        const r = await fetch("/api/healthz", { signal: controller.signal });
+        clearTimeout(t);
+        if (!cancelled && r.ok) retryPendingSave();
+      } catch {
+        clearTimeout(t);
+      }
+    }
+
+    const interval = setInterval(check, 4000);
+    window.addEventListener("online", check);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("online", check);
+    };
+  }, [saveError]);
+
   return { saveError, backOnline, clearBackOnline: () => setBackOnline(false) };
 }
