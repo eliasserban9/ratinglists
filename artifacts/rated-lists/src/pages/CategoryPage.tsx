@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { consumePageAnimation, markAppNavigation } from "@/lib/navigation";
 import { useLists } from "@/hooks/useLists";
 import type { SortMode } from "@/hooks/useLists";
 import { ListCard } from "@/components/ListCard";
@@ -24,6 +25,7 @@ function avgRating(items: { rating: number }[]): number | null {
 export default function CategoryPage({ params }: Props) {
   const { id } = params;
   const [, navigate] = useLocation();
+  const [shouldAnimate] = useState(() => consumePageAnimation());
   const {
     loading: listsLoading,
     getCategory, getListsForCategory, createListInCategory,
@@ -97,10 +99,10 @@ export default function CategoryPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen pb-24 page-enter">
+    <div className={`min-h-screen pb-24${shouldAnimate ? " page-enter" : ""}`}>
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <button
-          onClick={() => window.history.length > 1 ? window.history.back() : navigate("/", { replace: true })}
+          onClick={() => { markAppNavigation(); window.history.length > 1 ? window.history.back() : navigate("/", { replace: true }); }}
           className="flex items-center gap-1 text-primary text-sm mb-6 hover:opacity-70 transition-opacity"
         >
           <span className="text-lg leading-none">‹</span>

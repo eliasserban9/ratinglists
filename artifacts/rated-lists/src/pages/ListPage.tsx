@@ -1,4 +1,5 @@
 import { useState, useLayoutEffect, useRef, useEffect } from "react";
+import { consumePageAnimation, markAppNavigation } from "@/lib/navigation";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { useLists } from "@/hooks/useLists";
@@ -35,6 +36,7 @@ export default function ListPage({ params }: Props) {
     setUseAverageRating, setManualOverallRating,
   } = useLists();
 
+  const [shouldAnimate] = useState(() => consumePageAnimation());
   const [open, setOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
@@ -436,7 +438,7 @@ export default function ListPage({ params }: Props) {
 
   return (
     <div
-      className="min-h-screen page-enter"
+      className={`min-h-screen${shouldAnimate ? " page-enter" : ""}`}
       style={previewMode
         ? { position: "relative", overflow: "hidden", ...(!hasPhotoBg && listBg ? { backgroundColor: listBg } : {}), ...textVars }
         : { paddingBottom: "6rem", position: "relative" }}
@@ -483,7 +485,7 @@ export default function ListPage({ params }: Props) {
             <span />
           ) : (
             <button
-              onClick={() => window.history.length > 1 ? window.history.back() : navigate(backPath, { replace: true })}
+              onClick={() => { markAppNavigation(); window.history.length > 1 ? window.history.back() : navigate(backPath, { replace: true }); }}
               className="flex items-center gap-1 text-primary text-sm hover:opacity-70 transition-opacity"
             >
               <span className="text-lg leading-none">‹</span>
