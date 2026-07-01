@@ -78,7 +78,7 @@ export default function CategoryPage({ params }: Props) {
 
   function handleCreate(title: string) {
     const listId = createListInCategory(id, title);
-    navigate(`/list/${listId}`, { replace: true });
+    navigate(`/list/${listId}`);
   }
 
   function startTitleEdit() {
@@ -100,7 +100,7 @@ export default function CategoryPage({ params }: Props) {
     <div className="min-h-screen pb-24">
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <button
-          onClick={() => navigate("/", { replace: true })}
+          onClick={() => window.history.length > 1 ? window.history.back() : navigate("/", { replace: true })}
           className="flex items-center gap-1 text-primary text-sm mb-6 hover:opacity-70 transition-opacity"
         >
           <span className="text-lg leading-none">‹</span>

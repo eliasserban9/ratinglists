@@ -134,13 +134,16 @@ function notifySaveListeners(ok: boolean) {
 }
 
 function doSave(data: StoredData): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   return fetch("/api/user-data", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+    signal: controller.signal,
   })
-    .then((r) => { if (r.ok) clearDirty(); notifySaveListeners(r.ok); return r.ok; })
-    .catch(() => { notifySaveListeners(false); return false; });
+    .then((r) => { clearTimeout(timeout); if (r.ok) clearDirty(); notifySaveListeners(r.ok); return r.ok; })
+    .catch(() => { clearTimeout(timeout); notifySaveListeners(false); return false; });
 }
 
 async function fetchUserData(): Promise<StoredData> {
@@ -716,7 +719,7 @@ export function useSaveStatus() {
       } else {
         setConsecutiveFailures((prev) => {
           const next = prev + 1;
-          if (next >= 2) wasErroredRef.current = true;
+          if (next >= 1) wasErroredRef.current = true;
           return next;
         });
       }
@@ -725,6 +728,6 @@ export function useSaveStatus() {
     return () => { saveListeners.delete(listener); };
   }, []);
 
-  const saveError = consecutiveFailures >= 2;
+  const saveError = consecutiveFailures >= 1;
   return { saveError, backOnline, clearBackOnline: () => setBackOnline(false) };
 }

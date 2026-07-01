@@ -483,7 +483,7 @@ export default function ListPage({ params }: Props) {
             <span />
           ) : (
             <button
-              onClick={() => navigate(backPath, { replace: true })}
+              onClick={() => window.history.length > 1 ? window.history.back() : navigate(backPath, { replace: true })}
               className="flex items-center gap-1 text-primary text-sm hover:opacity-70 transition-opacity"
             >
               <span className="text-lg leading-none">‹</span>
