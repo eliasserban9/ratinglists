@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface ListItem {
@@ -699,13 +699,32 @@ export function useLists() {
   };
 }
 
-/** Tracks whether the last server save succeeded. */
+/** Tracks save health with debounced failure count and back-online signalling. */
 export function useSaveStatus() {
-  const [saveError, setSaveError] = useState(false);
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  const [backOnline, setBackOnline] = useState(false);
+  const wasErroredRef = useRef(false);
+
   useEffect(() => {
-    const listener: SaveListener = (ok) => setSaveError(!ok);
+    const listener: SaveListener = (ok) => {
+      if (ok) {
+        setConsecutiveFailures(0);
+        if (wasErroredRef.current) {
+          wasErroredRef.current = false;
+          setBackOnline(true);
+        }
+      } else {
+        setConsecutiveFailures((prev) => {
+          const next = prev + 1;
+          if (next >= 2) wasErroredRef.current = true;
+          return next;
+        });
+      }
+    };
     saveListeners.add(listener);
     return () => { saveListeners.delete(listener); };
   }, []);
-  return { saveError };
+
+  const saveError = consecutiveFailures >= 2;
+  return { saveError, backOnline, clearBackOnline: () => setBackOnline(false) };
 }
