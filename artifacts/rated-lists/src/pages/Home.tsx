@@ -96,10 +96,10 @@ export default function Home() {
   function handleCreate(type: "list" | "category" | "item", title: string, rating?: number) {
     if (type === "list") {
       const id = createList(title);
-      navigate(`/list/${id}`);
+      navigate(`/list/${id}`, { replace: true });
     } else if (type === "category") {
       const id = createCategory(title);
-      navigate(`/category/${id}`);
+      navigate(`/category/${id}`, { replace: true });
     } else {
       addStandaloneItem(title, rating ?? 5);
     }
@@ -265,7 +265,7 @@ export default function Home() {
                 <ListCard
                   key={list.id}
                   list={list}
-                  onClick={() => navigate(`/list/${list.id}`)}
+                  onClick={() => navigate(`/list/${list.id}`, { replace: true })}
                   onDelete={() => deleteList(list.id)}
                   onColorModeChange={(value) => setColorMode(list.id, value)}
                   onAddToList={() => setCopySourceListId(list.id)}
@@ -282,7 +282,7 @@ export default function Home() {
                     key={item.id}
                     category={item}
                     lists={getListsForCategory(item.id)}
-                    onClick={() => navigate(`/category/${item.id}`)}
+                    onClick={() => navigate(`/category/${item.id}`, { replace: true })}
                     onDelete={() => deleteCategory(item.id)}
                     onAddToList={() => setCopyCategoryId(item.id)}
                   />
@@ -293,7 +293,7 @@ export default function Home() {
                   <ListCard
                     key={item.id}
                     list={item}
-                    onClick={() => navigate(`/list/${item.id}`)}
+                    onClick={() => navigate(`/list/${item.id}`, { replace: true })}
                     onDelete={() => deleteList(item.id)}
                     onColorModeChange={(value) => setColorMode(item.id, value)}
                     onAddToList={() => setCopySourceListId(item.id)}

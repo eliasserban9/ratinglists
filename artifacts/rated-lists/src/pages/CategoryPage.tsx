@@ -78,7 +78,7 @@ export default function CategoryPage({ params }: Props) {
 
   function handleCreate(title: string) {
     const listId = createListInCategory(id, title);
-    navigate(`/list/${listId}`);
+    navigate(`/list/${listId}`, { replace: true });
   }
 
   function startTitleEdit() {
