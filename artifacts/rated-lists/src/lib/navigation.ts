@@ -2,6 +2,9 @@ let _appInitiated = false;
 let _nextShouldAnimate = true;
 
 if (typeof window !== "undefined") {
+  // Prevent iOS from jumping scroll position on popstate, which causes a visual jolt
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
   window.addEventListener(
     "popstate",
     () => {
