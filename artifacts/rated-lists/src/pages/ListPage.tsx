@@ -436,7 +436,7 @@ export default function ListPage({ params }: Props) {
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen page-enter"
       style={previewMode
         ? { position: "relative", overflow: "hidden", ...(!hasPhotoBg && listBg ? { backgroundColor: listBg } : {}), ...textVars }
         : { paddingBottom: "6rem", position: "relative" }}

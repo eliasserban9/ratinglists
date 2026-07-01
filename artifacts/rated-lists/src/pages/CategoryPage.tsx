@@ -97,7 +97,7 @@ export default function CategoryPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24 page-enter">
       <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
         <button
           onClick={() => window.history.length > 1 ? window.history.back() : navigate("/", { replace: true })}

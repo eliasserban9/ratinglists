@@ -178,7 +178,7 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24 page-enter">
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
