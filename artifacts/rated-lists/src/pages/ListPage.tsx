@@ -444,19 +444,19 @@ export default function ListPage({ params }: Props) {
         : { paddingBottom: "6rem", position: "relative" }}
     >
       {hasEditPhotoBanner && (
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 600, overflow: "hidden", zIndex: 0, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 440, overflow: "hidden", zIndex: 0, pointerEvents: "none" }}>
           <div style={{
             position: "absolute",
             inset: "-40px",
             backgroundImage: `url(${list.coverPhoto})`,
             backgroundSize: "cover",
-            backgroundPosition: "center 30%",
+            backgroundPosition: "center top",
             filter: "blur(28px)",
           }} />
           <div style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.10) 55%, hsl(var(--background)) 92%)",
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, hsl(var(--background)) 100%)",
           }} />
         </div>
       )}
