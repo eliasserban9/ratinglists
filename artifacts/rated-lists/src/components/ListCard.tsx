@@ -228,7 +228,27 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
       )}
       <div className="relative flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {list.coverPhoto && (
+              <img
+                src={list.coverPhoto}
+                alt=""
+                draggable={false}
+                className="shrink-0 rounded-md object-cover"
+                style={{
+                  width: 30,
+                  height: 30,
+                  boxShadow: colorModeOn
+                    ? "0 1px 4px rgba(0,0,0,0.25)"
+                    : showPhoto
+                    ? "0 1px 4px rgba(0,0,0,0.30)"
+                    : "0 1px 3px rgba(0,0,0,0.15)",
+                  border: colorModeOn || showPhoto
+                    ? "1.5px solid rgba(255,255,255,0.25)"
+                    : "1.5px solid rgba(0,0,0,0.06)",
+                }}
+              />
+            )}
             <h2
               className="font-semibold text-base truncate"
               style={{
@@ -311,42 +331,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
         </div>
       </div>
 
-      {list.items.length > 0 && (
-        <div className="relative mt-3 flex flex-wrap gap-1">
-          {[...list.items]
-            .sort((a, b) => b.rating - a.rating)
-            .slice(0, 3)
-            .map((item) => (
-              <span
-                key={item.id}
-                className="text-xs rounded-full px-2 py-0.5 truncate max-w-[120px]"
-                style={
-                  colorModeOn
-                    ? { backgroundColor: "rgba(0,0,0,0.2)", color: "rgba(255,255,255,0.8)" }
-                    : showPhoto
-                    ? { backgroundColor: onPhotoChipBg, color: onPhotoChipText }
-                    : { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))" }
-                }
-              >
-                {item.name}
-              </span>
-            ))}
-          {list.items.length > 3 && (
-            <span
-              className="text-xs px-1"
-              style={{
-                color: colorModeOn
-                  ? "rgba(255,255,255,0.55)"
-                  : showPhoto
-                  ? onPhotoMutedText
-                  : "hsl(var(--muted-foreground))",
-              }}
-            >
-              +{list.items.length - 3}
-            </span>
-          )}
-        </div>
-      )}
 
       {colorPickerPortal}
       {dropdown}
