@@ -23,10 +23,7 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const [colorPickerPos, setColorPickerPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
-  const colorPickerBtnRef = useRef<HTMLButtonElement>(null);
 
   const useAvg = list.useAverageRating !== false; // default true — matches ListPage
   const displayedRating: number | null = useAvg
@@ -41,11 +38,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
   const overlayColor = photoLight ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.30)";
   const onPhotoText = photoLight ? "rgba(20,20,25,0.95)" : "#fff";
   const onPhotoMutedText = photoLight ? "rgba(20,20,25,0.65)" : "rgba(255,255,255,0.65)";
-  const onPhotoChipBg = photoLight ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.20)";
-  const onPhotoChipText = photoLight ? "rgba(20,20,25,0.85)" : "rgba(255,255,255,0.80)";
-  const onPhotoControlBg = photoLight ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.20)";
-  const onPhotoControlBorder = photoLight ? "rgba(20,20,25,0.18)" : "rgba(255,255,255,0.25)";
-  const onPhotoControlText = photoLight ? "rgba(20,20,25,0.85)" : "rgba(255,255,255,0.85)";
   const onPhotoMenuIcon = photoLight ? "rgba(20,20,25,0.70)" : "rgba(255,255,255,0.70)";
   const onPhotoBadgeBg = photoLight ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.25)";
   const photoFallbackBg = photoLight ? "#eee" : "#222";
@@ -64,19 +56,9 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
     setMenuOpen((v) => !v);
   }
 
-  function openColorPicker(e: React.MouseEvent) {
+  function handleToggleColorMode(e: React.MouseEvent) {
     e.stopPropagation();
-    const rect = colorPickerBtnRef.current?.getBoundingClientRect();
-    if (rect) {
-      setColorPickerPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-    }
-    setColorPickerOpen((v) => !v);
-  }
-
-  function pickColorMode(value: boolean, e: React.MouseEvent) {
-    e.stopPropagation();
-    setColorPickerOpen(false);
-    onColorModeChange(value);
+    onColorModeChange(!list.colorMode);
   }
 
   function handleRemove(e: React.MouseEvent) {
@@ -94,58 +76,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
     setMenuOpen(false);
     onAddToList();
   }
-
-  const colorPickerPortal = colorPickerOpen
-    ? createPortal(
-        <>
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={(e) => {
-              e.stopPropagation();
-              setColorPickerOpen(false);
-            }}
-          />
-          <div
-            className="fixed z-[9999] min-w-[140px] rounded-xl overflow-hidden shadow-xl border"
-            style={{
-              top: colorPickerPos.top,
-              right: colorPickerPos.right,
-              backgroundColor: "hsl(var(--popover))",
-              borderColor: "hsl(var(--popover-border))",
-            }}
-          >
-            <button
-              type="button"
-              onClick={(e) => pickColorMode(false, e)}
-              className="w-full px-4 py-2.5 text-sm text-left active:opacity-60 flex items-center gap-2"
-              style={{
-                color: "hsl(var(--foreground))",
-                backgroundColor: !list.colorMode ? "hsl(var(--muted))" : "transparent",
-                fontWeight: !list.colorMode ? 600 : 400,
-              }}
-            >
-              <span>⬜</span>
-              <span>Default</span>
-            </button>
-            <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
-            <button
-              type="button"
-              onClick={(e) => pickColorMode(true, e)}
-              className="w-full px-4 py-2.5 text-sm text-left active:opacity-60 flex items-center gap-2"
-              style={{
-                color: "hsl(var(--foreground))",
-                backgroundColor: list.colorMode ? "hsl(var(--muted))" : "transparent",
-                fontWeight: list.colorMode ? 600 : 400,
-              }}
-            >
-              <span>🎨</span>
-              <span>Color</span>
-            </button>
-          </div>
-        </>,
-        document.body
-      )
-    : null;
 
   const dropdown = menuOpen
     ? createPortal(
@@ -170,14 +100,33 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
             }}
           >
             <button
-              onClick={handleRemove}
-              className="w-full px-4 py-3 text-sm text-left active:opacity-60"
-              style={{
-                color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
-                fontWeight: confirmDelete ? 600 : 400,
-              }}
+              onClick={handleToggleColorMode}
+              className="w-full px-4 py-3 text-sm text-left active:opacity-60 flex items-center justify-between gap-3"
+              style={{ color: "hsl(var(--foreground))" }}
             >
-              {confirmDelete ? "Tap again to confirm" : "Remove list"}
+              <span>Color mode</span>
+              <span
+                className="shrink-0 inline-flex items-center rounded-full transition-colors"
+                style={{
+                  width: 36,
+                  height: 20,
+                  backgroundColor: list.colorMode ? "hsl(var(--primary))" : "hsl(var(--muted))",
+                  padding: "2px",
+                  position: "relative",
+                }}
+              >
+                <span
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    backgroundColor: "#fff",
+                    transform: list.colorMode ? "translateX(16px)" : "translateX(0)",
+                    transition: "transform 150ms ease",
+                    display: "block",
+                  }}
+                />
+              </span>
             </button>
             <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
             <button
@@ -186,6 +135,17 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
               style={{ color: "hsl(var(--foreground))" }}
             >
               Add to list
+            </button>
+            <div style={{ height: 1, backgroundColor: "hsl(var(--border))" }} />
+            <button
+              onClick={handleRemove}
+              className="w-full px-4 py-3 text-sm text-left active:opacity-60"
+              style={{
+                color: confirmDelete ? "hsl(var(--destructive))" : "hsl(var(--foreground))",
+                fontWeight: confirmDelete ? 600 : 400,
+              }}
+            >
+              {confirmDelete ? "Tap again to confirm" : "Remove list"}
             </button>
           </div>
         </>,
@@ -294,26 +254,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
 
         <div className="flex items-center gap-1 shrink-0">
           <button
-            ref={colorPickerBtnRef}
-            type="button"
-            onClick={openColorPicker}
-            className="text-xs rounded-lg px-2 py-1 border cursor-pointer outline-none transition-colors flex items-center gap-1"
-            style={
-              colorModeOn
-                ? { backgroundColor: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }
-                : showPhoto
-                ? { backgroundColor: onPhotoControlBg, borderColor: onPhotoControlBorder, color: onPhotoControlText }
-                : { backgroundColor: "hsl(var(--muted))", borderColor: "hsl(var(--border))", color: "hsl(var(--muted-foreground))" }
-            }
-            aria-label="Color mode"
-            aria-haspopup="listbox"
-            aria-expanded={colorPickerOpen}
-          >
-            <span>{list.colorMode ? "🎨 Color" : "⬜ Default"}</span>
-            <span style={{ fontSize: "0.7em", opacity: 0.7 }}>▾</span>
-          </button>
-
-          <button
             ref={btnRef}
             onClick={openMenu}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-xl font-bold leading-none transition-opacity hover:opacity-70"
@@ -332,7 +272,6 @@ export function ListCard({ list, onClick, onDelete, onColorModeChange, onAddToLi
       </div>
 
 
-      {colorPickerPortal}
       {dropdown}
     </div>
   );
