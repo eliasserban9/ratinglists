@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
+import { useTransitionLocation } from "@/lib/transitionLocation";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useClerk, useAuth } from "@clerk/react";
 import { useEffect, useRef } from "react";
@@ -123,7 +124,7 @@ function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
+    <WouterRouter base={basePath} hook={useTransitionLocation}>
       <ClerkProviderWithRoutes />
     </WouterRouter>
   );
