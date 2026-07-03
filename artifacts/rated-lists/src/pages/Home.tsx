@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useClerk } from "@clerk/react";
+import { consumePageAnimation } from "@/lib/navigation";
 import { useLists } from "@/hooks/useLists";
 import { useTheme } from "@/hooks/useTheme";
 import { ListCard } from "@/components/ListCard";
@@ -14,6 +15,7 @@ import type { SortMode } from "@/hooks/useLists";
 
 export default function Home() {
   useEffect(() => { document.body.dataset.page = "home"; }, []);
+  const [shouldAnimate] = useState(() => consumePageAnimation());
 
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -178,7 +180,7 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen pb-24">
+    <div className={`min-h-screen pb-24${shouldAnimate ? " page-enter" : ""}`}>
       <div className="max-w-lg mx-auto px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-3xl font-bold text-foreground">Rating Lists</h1>
